@@ -1,8 +1,8 @@
 # labshot 📸⚡
 
-> **Real Terminal Lab Screenshot Recorder & Evidence Workspace for Linux University Coursework**
+> **Terminal Lab Screenshot Recorder & Evidence Workspace for Linux University Coursework**
 
-`labshot` is a keyboard-first Textual TUI and CLI developer tool designed for university students (e.g. CS345 Operating Systems / Linux Labs). It lets you answer lab questions by executing commands in a **real persistent Linux shell** running inside an authentic terminal window (Konsole / Alacritty) and automatically captures **genuine, pixel-perfect native screenshots** of the terminal window after every question.
+`labshot` is a keyboard-first Textual TUI and CLI developer tool designed for university students (e.g. CS345 Operating Systems / Linux Labs). It lets you answer lab questions by executing commands in a **persistent Linux shell** running inside a terminal window (Konsole / Alacritty) and automatically captures terminal output as PNG images after every question.
 
 ---
 

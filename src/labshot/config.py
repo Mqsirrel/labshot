@@ -45,11 +45,19 @@ class TerminalConfig:
     theme: TerminalTheme = field(default_factory=TerminalTheme)
 
 
+def get_default_base_dir() -> Path:
+    """Return default output directory on Desktop."""
+    desktop = Path.home() / "Desktop"
+    if desktop.exists():
+        return desktop / "CS345"
+    return Path.cwd() / "CS345"
+
+
 @dataclass
 class LabConfig:
     """General configuration for the lab recording session."""
     default_lab_name: str = "Essential Linux Commands"
-    base_dir: Path = field(default_factory=lambda: Path.cwd() / "CS345")
+    base_dir: Path = field(default_factory=get_default_base_dir)
     # Prompt omits hostname to keep terminal output clean and compact (e.g. albraa:~/path$)
     prompt_template: str = r"\u:\w\$ "
     default_timeout_seconds: float = 30.0

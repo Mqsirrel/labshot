@@ -10,6 +10,14 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 
+def get_default_base_dir() -> Path:
+    """Return default output directory on Desktop."""
+    desktop = Path.home() / "Desktop"
+    if desktop.exists():
+        return desktop / "CS345"
+    return Path.cwd() / "CS345"
+
+
 def sanitize_folder_name(name: str) -> str:
     """Convert lab name to a safe filesystem directory name (e.g. 'Essential Linux Commands' -> 'Essential-Linux-Commands')."""
     s = re.sub(r"[^\w\s-]", "", name).strip()
@@ -51,7 +59,7 @@ class LabStorage:
 
     def __init__(self, lab_name: str, base_dir: Optional[Path] = None):
         self.lab_name = lab_name
-        self.base_dir = Path(base_dir) if base_dir else Path.cwd() / "CS345"
+        self.base_dir = Path(base_dir) if base_dir else get_default_base_dir()
         self.folder_name = sanitize_folder_name(lab_name)
         self.lab_dir = self.base_dir / self.folder_name
         self.screenshots_dir = self.lab_dir / "screenshots"
@@ -234,8 +242,8 @@ class LabStorage:
 
     @classmethod
     def list_all_labs(cls, base_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
-        """Discover and list all existing labs in the base CS345 directory."""
-        root = Path(base_dir) if base_dir else Path.cwd() / "CS345"
+        """Discover and list all existing labs in the Desktop CS345 directory."""
+        root = Path(base_dir) if base_dir else get_default_base_dir()
         if not root.exists():
             return []
 

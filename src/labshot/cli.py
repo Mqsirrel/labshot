@@ -44,9 +44,9 @@ def print_help() -> None:
     print("  <Linux command>   Execute in terminal & capture screenshot")
     print("  :status           Show completed questions")
     print("  :redo <N>         Re-take Question N")
-    print("  :done             Finish lab & prepare submission package")
+    print("  end / :done       Finish lab & package submission to Desktop")
     print("  :help             Show this help message")
-    print("  :exit             Save and quit\n")
+    print("  exit / Ctrl+C     Save and quit\n")
 
 
 def print_status(session: LabSession) -> None:
@@ -63,29 +63,30 @@ def print_status(session: LabSession) -> None:
 
 
 def handle_done(session: LabSession) -> None:
-    """Finish the lab session, export submission, and summarize results without prompts."""
+    """Finish the lab session, export submission to Desktop, and summarize results."""
     sub_dir = session.export()
     existing = session.storage.get_existing_question_numbers()
     count = len(existing)
 
-    print("\n" + "=" * 50)
+    print("\n" + "=" * 52)
     print("  ✓ Lab complete")
     print(f"  {count} questions captured")
     print(f"  {count} screenshots saved")
-    print(f"  Folder:")
+    print(f"  Desktop Output:")
     print(f"    {format_path_for_display(session.storage.lab_dir)}")
-    print(f"  Submission Package:")
+    print(f"  Submission Package (for DOCX):")
     print(f"    {format_path_for_display(sub_dir)}")
-    print("=" * 50 + "\n")
+    print("=" * 52 + "\n")
 
 
 def run_repl(session: LabSession) -> None:
-    """Main direct student REPL."""
+    """Main direct student REPL with unlimited questions and seamless termination."""
     if not session.is_active():
         session.start()
 
     print(f"Lab: {session.lab_name}")
-    print(f"Ready.\n")
+    print(f"Output: {format_path_for_display(session.storage.lab_dir)}")
+    print(f"Ready. (Type 'end' or press Ctrl+C when finished)\n")
 
     redo_target: Optional[int] = None
 
@@ -101,20 +102,19 @@ def run_repl(session: LabSession) -> None:
             if not raw_input:
                 continue
 
-            # Handle internal commands prefixed with ':'
+            cleaned_lower = raw_input.lower().lstrip(":")
+
+            # Immediate termination commands
+            if cleaned_lower in ("end", "done", "finish", "stop", "exit", "quit", "q"):
+                handle_done(session)
+                break
+
+            # Handle internal commands
             if raw_input.startswith(":"):
                 parts = raw_input[1:].strip().split()
                 cmd = parts[0].lower() if parts else ""
 
-                if cmd in ("done", "finish"):
-                    handle_done(session)
-                    break
-
-                elif cmd in ("exit", "quit", "q"):
-                    print("Exiting labshot. All screenshots and commands saved.")
-                    break
-
-                elif cmd == "help":
+                if cmd == "help":
                     print_help()
                     continue
 
@@ -170,12 +170,10 @@ def run_repl(session: LabSession) -> None:
             except Exception as ex:
                 print(f"\n✗ Command execution error: {ex}\n")
 
-        except KeyboardInterrupt:
-            print("\n(Press :done to finish or :exit to quit)")
-            redo_target = None
-            continue
-        except EOFError:
-            print("\nExiting labshot. All screenshots and metadata saved.")
+        except (KeyboardInterrupt, EOFError):
+            # Graceful finish on Ctrl+C or Ctrl+D
+            print("\n")
+            handle_done(session)
             break
 
 
@@ -301,8 +299,6 @@ def main() -> None:
 
         run_repl(session)
 
-    except KeyboardInterrupt:
-        print("\nSession interrupted.")
     finally:
         session.close()
 

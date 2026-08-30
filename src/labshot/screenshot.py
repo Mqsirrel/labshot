@@ -52,6 +52,10 @@ class SpectacleBackend(ScreenshotBackend):
         ]
         try:
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            for _ in range(10):
+                if output_path.exists() and output_path.stat().st_size > 500:
+                    return True
+                time.sleep(0.05)
             return res.returncode == 0 and output_path.exists() and output_path.stat().st_size > 500
         except Exception:
             return False

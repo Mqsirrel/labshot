@@ -181,7 +181,7 @@ style = {{ shape = "Block", blinking = "Off" }}
         token = self.session_token
         target_pid = self.process.pid if self.process else 0
 
-        # Tier 1: KDE Plasma 6 KWin Declarative Scripting via qdbus6
+        # Tier 1: KDE Plasma 6 KWin Scripting via qdbus6
         if shutil.which("qdbus6") and (os.environ.get("KDE_FULL_SESSION") or os.environ.get("XDG_CURRENT_DESKTOP") == "KDE"):
             script_name = f"labshot_focus_{token}"
             script_body = f"""
@@ -200,14 +200,16 @@ style = {{ shape = "Block", blinking = "Off" }}
                     temp_script_path = tf.name
 
                 res = subprocess.run(
-                    ["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadDeclarativeScript", temp_script_path, script_name],
+                    ["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadScript", temp_script_path, script_name],
                     capture_output=True, text=True, timeout=2
                 )
                 if res.returncode == 0:
+                    script_id = res.stdout.strip()
                     subprocess.run(
-                        ["qdbus6", "org.kde.KWin", f"/{script_name}", "org.kde.kwin.Scripting.start"],
+                        ["qdbus6", "org.kde.KWin", f"/Scripting/Script{script_id}", "org.kde.kwin.Script.run"],
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2
                     )
+                    time.sleep(0.08)
                     subprocess.run(
                         ["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.unloadScript", script_name],
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2

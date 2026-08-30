@@ -62,47 +62,65 @@ class LabSession:
         meta = self.storage.load_metadata()
         return meta.get("questions", [])
 
-    def execute_question(self, command: str, question_number: Optional[int] = None) -> QuestionRecord:
-        """Execute a lab question command, capture screenshot, and save metadata."""
+    def execute_command_only(self, command: str) -> CommandResult:
+        """Execute a command in the persistent shell without capturing screenshot."""
         if not self.is_active():
             raise RuntimeError("Lab session is not active. Call start() first.")
+        self.shell.activate_terminal_window()
+        return self.shell.execute(command)
 
-        q_num = question_number if question_number is not None else self.current_q_num
-        shot_path = self.storage.get_screenshot_path(q_num)
-
-        # 1. Activate terminal window before command
+    def capture_evidence_only(
+        self,
+        question_number: int,
+        command: str,
+        cmd_result: CommandResult,
+    ) -> QuestionRecord:
+        """Capture screenshot and commit evidence for an already executed command."""
+        shot_path = self.storage.get_screenshot_path(question_number)
         self.shell.activate_terminal_window()
 
-        # 2. Execute command in persistent shell
-        cmd_result = self.shell.execute(command)
-
-        # 3. Ensure terminal window is in focus
-        self.shell.activate_terminal_window()
-
-        # 4. Capture native window screenshot specifically
         self.screenshot_mgr.capture(
             output_path=shot_path,
             delay_seconds=self.config.post_command_delay,
             terminal_mgr=self.shell.terminal_mgr,
         )
 
-        # 5. Record command, metadata, and history
         record = self.storage.record_question(
-            number=q_num,
+            number=question_number,
             command=command,
             exit_code=cmd_result.exit_code,
             cwd_before=cmd_result.cwd_before,
             cwd_after=cmd_result.cwd_after,
         )
 
-        # If this was the current question (not a redo), advance question counter
-        if question_number is None or question_number >= self.current_q_num:
-            self.current_q_num = max(self.current_q_num + 1, q_num + 1)
+        if question_number >= self.current_q_num:
+            self.current_q_num = question_number + 1
 
         return record
 
+    def retry_screenshot_only(self, question_number: int) -> Path:
+        """Re-capture screenshot for an existing question without re-running shell commands."""
+        shot_path = self.storage.get_screenshot_path(question_number)
+        self.shell.activate_terminal_window()
+
+        self.screenshot_mgr.capture(
+            output_path=shot_path,
+            delay_seconds=self.config.post_command_delay,
+            terminal_mgr=self.shell.terminal_mgr,
+        )
+        return shot_path
+
+    def execute_question(self, command: str, question_number: Optional[int] = None) -> QuestionRecord:
+        """Execute a lab question command, capture screenshot, and save metadata."""
+        if not self.is_active():
+            raise RuntimeError("Lab session is not active. Call start() first.")
+
+        q_num = question_number if question_number is not None else self.current_q_num
+        cmd_result = self.execute_command_only(command)
+        return self.capture_evidence_only(question_number=q_num, command=command, cmd_result=cmd_result)
+
     def redo_question(self, question_number: int, command: str) -> QuestionRecord:
-        """Re-execute a specific question and replace its evidence."""
+        """Re-take a previous question with a new command and replace evidence."""
         return self.execute_question(command=command, question_number=question_number)
 
     def export(self, target_dir: Optional[Path] = None) -> Path:

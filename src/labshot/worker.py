@@ -77,8 +77,8 @@ def main():
     sys.stdout.flush()
 
     env = os.environ.copy()
-    # Keep title locked in window caption on every command prompt
-    env["PROMPT_COMMAND"] = f'printf "\\033]0;{title}\\007"; echo $? $PWD > {fifo_path}'
+    # Save exact command exit code in __ec before running any subcommands in PROMPT_COMMAND
+    env["PROMPT_COMMAND"] = f'__ec=$?; printf "\\033]0;{title}\\007"; echo $__ec $PWD > {fifo_path}'
     env["PS1"] = os.environ.get("LABSHOT_PS1", r"\u:\w\$ ")
     env["TERM"] = "xterm-256color"
     env["COLUMNS"] = str(target_cols)
@@ -164,9 +164,10 @@ def main():
 
         elif action == "run":
             cmd = msg.get("cmd", "")
-            # Clear screen and redraw clean prompt for isolated question capture
-            os.write(master_fd, b"")
-            time.sleep(0.04)
+            # Clear terminal screen directly to keep each question screenshot isolated
+            sys.stdout.buffer.write(b"\033[2J\033[3J\033[H")
+            sys.stdout.buffer.flush()
+
             # Send command + newline to interactive bash PTY
             os.write(master_fd, (cmd + "\n").encode("utf-8"))
 

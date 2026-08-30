@@ -214,6 +214,18 @@ def main() -> None:
         help="Name of the university lab",
     )
     parser.add_argument(
+        "--cli",
+        "-c",
+        action="store_true",
+        help="Run in classic direct CLI REPL mode instead of TUI",
+    )
+    parser.add_argument(
+        "--version",
+        "-v",
+        action="version",
+        version="labshot 2.1.0 (Real Terminal Lab Evidence Recorder)",
+    )
+    parser.add_argument(
         "--konsole",
         "-k",
         action="store_true",
@@ -224,7 +236,7 @@ def main() -> None:
         "-t",
         type=str,
         default=None,
-        help="Preferred terminal emulator (alacritty, konsole, gnome-terminal, etc.)",
+        help="Preferred terminal emulator (konsole, alacritty, gnome-terminal, etc.)",
     )
     parser.add_argument(
         "--screenshot",
@@ -240,6 +252,10 @@ def main() -> None:
     export_parser = subparsers.add_parser("export", help="Export screenshots and commands for lab submission")
     export_parser.add_argument("lab", nargs="?", default=None, help="Lab name to export")
     export_parser.add_argument("--out", "-o", type=str, default=None, help="Output destination folder")
+
+    # Subcommand: report
+    report_parser = subparsers.add_parser("report", help="Populate Word (.docx) and PDF report from lab evidence")
+    report_parser.add_argument("lab", nargs="?", default=None, help="Lab name")
 
     # Subcommand: list
     list_parser = subparsers.add_parser("list", help="List recorded questions for a lab")
@@ -260,7 +276,21 @@ def main() -> None:
     # Determine preferred terminal
     chosen_term = "konsole" if args.konsole else args.term
 
-    # If subcommand supplied
+    # If report subcommand
+    if args.subcommand == "report":
+        lab_name = resolve_lab_name(args.lab)
+        storage = LabStorage(lab_name=lab_name)
+        doc = generate_completed_docx(storage)
+        if doc:
+            pdf = convert_docx_to_pdf(doc)
+            print(f"Generated Word report: {format_path_for_display(doc)}")
+            if pdf:
+                print(f"Generated PDF report:  {format_path_for_display(pdf)}")
+        else:
+            print(f"No CS345 Word template found or no questions recorded for '{lab_name}'.")
+        sys.exit(0)
+
+    # If export subcommand
     if args.subcommand == "export":
         lab_name = resolve_lab_name(args.lab)
         storage = LabStorage(lab_name=lab_name)
@@ -293,7 +323,40 @@ def main() -> None:
         print(f"  Next Question:       Q{storage.get_next_question_number()}\n")
         sys.exit(0)
 
-    # Directly resolve lab name: no wizard, no questions
+    # If redo subcommand
+    if args.subcommand == "redo":
+        lab_name = resolve_lab_name(args.lab)
+        session = LabSession(lab_name=lab_name, preferred_term=chosen_term, preferred_screenshot=args.screenshot)
+        session.start()
+        try:
+            q_num = args.question_number
+            if args.command:
+                cmd_str = " ".join(args.command)
+                rec = session.redo_question(question_number=q_num, command=cmd_str)
+                print(f"✓ Q{q_num} re-captured → {Path(rec.screenshot).name}")
+            else:
+                print(f"Opening REPL to redo Q{q_num}...")
+                run_repl(session)
+        finally:
+            session.close()
+        sys.exit(0)
+
+    # Launch Textual TUI by default (unless --cli was requested)
+    if not args.cli:
+        try:
+            from labshot.ui.app import run_tui
+            specified_name = args.lab or args.lab_name_pos
+            run_tui(
+                lab_name=specified_name,
+                preferred_term=chosen_term,
+                preferred_screenshot=args.screenshot,
+            )
+            sys.exit(0)
+        except Exception as ex:
+            # If TUI fails to initialize (e.g. non-interactive dumb terminal), fallback gracefully to CLI
+            pass
+
+    # Direct CLI REPL mode
     specified_name = args.lab or args.lab_name_pos
     lab_name = resolve_lab_name(specified_name)
 
@@ -305,18 +368,7 @@ def main() -> None:
 
     try:
         session.start()
-
-        if args.subcommand == "redo":
-            q_num = args.question_number
-            if args.command:
-                cmd_str = " ".join(args.command)
-                rec = session.redo_question(question_number=q_num, command=cmd_str)
-                print(f"✓ Q{q_num} re-captured → {Path(rec.screenshot).name}")
-                session.close()
-                sys.exit(0)
-
         run_repl(session)
-
     finally:
         session.close()
 

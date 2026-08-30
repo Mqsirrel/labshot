@@ -1,31 +1,31 @@
-"""Keyboard shortcuts help overlay."""
+"""Minimal Keyboard Shortcuts help modal."""
 
 from textual.app import ComposeResult
-from textual.containers import Container, Horizontal, Vertical
+from textual.containers import Container
 from textual.screen import ModalScreen
-from textual.widgets import Button, Label
+from textual.widgets import Label, Static
 
 
 class HelpModal(ModalScreen):
     """Modal displaying full keyboard shortcut reference."""
 
+    BINDINGS = [
+        ("escape", "close_modal", "Close"),
+    ]
+
     def compose(self) -> ComposeResult:
-        with Container(classes="modal-dialog"):
+        with Container(classes="modal-box"):
             yield Label("Keyboard Shortcuts", classes="modal-title")
-            with Vertical():
-                yield Label("  Enter       Execute Linux command & capture")
-                yield Label("  ↑ / ↓       Navigate questions")
-                yield Label("  N           Next question")
-                yield Label("  B           Previous question")
-                yield Label("  R           Retry / Redo current screenshot")
-                yield Label("  P           Preview evidence in viewer")
-                yield Label("  S           Show lab status overview")
-                yield Label("  D           Finish lab & package submission")
-                yield Label("  ?           Show this help modal")
-                yield Label("  Q           Quit / Exit to Home")
+            yield Static("Enter   Run command and capture screenshot", classes="modal-row")
+            yield Static("; <cmd> Run setup / cd without screenshot", classes="modal-row")
+            yield Static("N       Next question", classes="modal-row")
+            yield Static("B       Previous question", classes="modal-row")
+            yield Static("R       Retry current screenshot", classes="modal-row")
+            yield Static("P       Preview evidence image", classes="modal-row")
+            yield Static("S       Session status", classes="modal-row")
+            yield Static("D       Finish lab & generate report", classes="modal-row")
+            yield Static("Q       Quit", classes="modal-row")
+            yield Static("Esc Close", classes="modal-actions")
 
-            with Horizontal(classes="home-btn-row"):
-                yield Button("Close", id="btn-close-help", variant="primary")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def action_close_modal(self) -> None:
         self.dismiss()

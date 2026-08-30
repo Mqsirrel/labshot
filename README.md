@@ -1,8 +1,8 @@
 # labshot 📸⚡
 
-> **Terminal Lab Screenshot Recorder & Evidence Workspace for Linux University Coursework**
+> **Terminal lab evidence capture tool for Linux university labs**
 
-`labshot` is a keyboard-first Textual TUI and CLI developer tool designed for university students (e.g. CS345 Operating Systems / Linux Labs). It lets you answer lab questions by executing commands in a **persistent Linux shell** running inside a terminal window (Konsole / Alacritty) and automatically captures terminal output as PNG images after every question.
+`labshot` is a minimal, keyboard-first terminal tool designed for university coursework (e.g. CS345 Operating Systems / Linux Labs). It lets you answer questions by executing commands in a persistent shell running inside an authentic terminal window (Konsole / Alacritty) and automatically captures pixel-perfect native screenshots of the terminal window after each question.
 
 ---
 
@@ -30,6 +30,9 @@
             Konsole     Auto-Trim      Desktop
 ```
 
+- **Independent Core**: `shell`, `execution`, `screenshot`, `validation`, `storage` are completely decoupled from UI code.
+- **TUI & CLI**: Textual TUI is the default interface; direct CLI REPL is available with `labshot --cli`.
+
 ---
 
 ## 🚀 Quickstart
@@ -40,36 +43,35 @@
 labshot
 ```
 
-### Launch Classic Direct CLI REPL
+### Launch Classic CLI REPL
 
 ```bash
 labshot --cli
 ```
 
-*(or `labshot -c`)*
-
 ---
 
-## ⌨️ TUI Keyboard Shortcuts
+## ⌨️ Keyboard Shortcuts
 
 | Key | Action |
 | :--- | :--- |
-| **`Enter`** | Execute Linux command in live terminal & capture evidence |
-| **`↑` / `↓`** | Navigate through questions list |
+| **`Enter`** | Run command & capture official screenshot for current question |
+| **`; <cmd>`** | Run setup / navigation command (e.g. `; cd ..`) without screenshot |
+| **`↑` / `↓`** | Navigate questions list |
 | **`N`** | Next question |
 | **`B`** | Previous question |
-| **`R`** | Retry / Redo screenshot capture |
-| **`P`** | Preview evidence & inspect image resolution in system viewer |
-| **`S`** | Show Lab Status overview modal |
-| **`D`** | Finish lab & package submission |
-| **`?`** | Show keyboard help modal |
-| **`Q`** | Quit / Exit to Home |
+| **`R`** | Retry current screenshot (without re-running commands) |
+| **`P`** | Preview evidence metadata & open image in viewer |
+| **`S`** | Session status overview |
+| **`D`** | Finish lab & generate DOCX report |
+| **`?`** | Help modal |
+| **`Q`** | Quit |
 
 ---
 
-## 📂 Desktop Output & Auto-Fill Word Report
+## 📂 Desktop Output & Word Report
 
-All screenshots and submission packages are automatically organized on your Desktop:
+All screenshots and submission files are saved to your Desktop:
 
 ```
 ~/Desktop/CS345/<Lab-Name>/
@@ -80,22 +82,18 @@ All screenshots and submission packages are automatically organized on your Desk
 └── submission/
     ├── q1.png
     ├── q2.png
-    ├── ...
     └── commands.txt
 ```
 
-### Optional DOCX & PDF Auto-Fill:
-If `CS345_Linux_Lab_Template.docx` is present on your Desktop, `labshot` automatically:
-1. Fills your executed commands into the `$ ` answer box.
-2. Embeds the high-resolution PNG screenshots into `(Paste here)`.
-3. Exports both `~/Desktop/<Lab-Name>_Completed.docx` and `~/Desktop/<Lab-Name>_Completed.pdf` ready for immediate submission!
+If `CS345_Linux_Lab_Template.docx` is present on Desktop, Labshot automatically fills command answers, embeds screenshots, and exports `<Lab-Name>_Completed.docx` and `<Lab-Name>_Completed.pdf`.
 
 ---
 
-## 🛠️ CLI Subcommands
+## 🛠️ CLI Commands
 
-- `labshot export [lab]` — Export submission package
-- `labshot report [lab]` — Populate Word (.docx) and PDF report
+- `labshot --cli` — Classic direct terminal REPL
+- `labshot export [lab]` — Export submission folder
+- `labshot report [lab]` — Populate Word and PDF report
 - `labshot list [lab]` — List recorded questions and exit codes
 - `labshot status [lab]` — Display lab metrics
 - `labshot redo <N> [cmd]` — Re-take Question N

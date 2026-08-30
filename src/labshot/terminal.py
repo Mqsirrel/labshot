@@ -44,8 +44,8 @@ class TerminalManager:
         self.cached_window_id: Optional[str] = None
 
     def _detect_terminal(self, preferred: Optional[str] = None) -> str:
-        """Detect the best available terminal emulator on the system."""
-        candidates = ["alacritty", "konsole", "gnome-terminal", "xfce4-terminal", "xterm", "kitty", "foot"]
+        """Detect the best available terminal emulator on the system (Konsole prioritized)."""
+        candidates = ["konsole", "alacritty", "gnome-terminal", "xfce4-terminal", "xterm", "kitty", "foot"]
         if preferred:
             candidates.insert(0, preferred.lower())
 

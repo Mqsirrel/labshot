@@ -40,7 +40,7 @@ class LabConfig:
     """General configuration for the lab recording session."""
     default_lab_name: str = "Essential Linux Commands"
     base_dir: Path = field(default_factory=lambda: Path.cwd() / "CS345")
-    prompt_template: str = r"student@cs345:\w$ "
+    prompt_template: str = r"\u@\h:\w\$ "
     default_timeout_seconds: float = 30.0
     post_command_delay: float = 0.12  # Wait for GPU/compositor render buffer
     terminal_config: TerminalConfig = field(default_factory=TerminalConfig)

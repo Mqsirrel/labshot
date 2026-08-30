@@ -87,6 +87,7 @@ style = {{ shape = "Block", blinking = "Off" }}
         env["LABSHOT_SOCK"] = str(sock_path)
         env["LABSHOT_FIFO"] = str(fifo_path)
         env["LABSHOT_TITLE"] = self.window_title
+        env["LABSHOT_PS1"] = self.config.prompt_template
 
         python_exec = shutil.which("python3") or "python3"
 
@@ -139,7 +140,6 @@ style = {{ shape = "Block", blinking = "Off" }}
 
     def activate_window(self) -> None:
         """Activate/raise the terminal window using compositor or window manager methods."""
-        # Method 1: KDE Plasma Wayland KWin Scripting via qdbus6
         if shutil.which("qdbus6"):
             kwin_js = f"""
             var windows = workspace.stackingOrder;
@@ -155,7 +155,7 @@ style = {{ shape = "Block", blinking = "Off" }}
             try:
                 with open(script_file, "w", encoding="utf-8") as f:
                     f.write(kwin_js)
-                load_res = subprocess.run(
+                subprocess.run(
                     ["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadDeclarativeScript", str(script_file), "labshot_focus"],
                     capture_output=True, text=True, timeout=2
                 )
@@ -166,7 +166,6 @@ style = {{ shape = "Block", blinking = "Off" }}
             except Exception:
                 pass
 
-        # Method 2: xdotool / wmctrl on X11 / XWayland
         if shutil.which("xdotool"):
             try:
                 subprocess.run(["xdotool", "search", "--name", "labshot", "windowactivate"], capture_output=True, timeout=2)

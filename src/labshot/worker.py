@@ -53,7 +53,7 @@ def main():
 
     env = os.environ.copy()
     env["PROMPT_COMMAND"] = f"echo $? $PWD > {fifo_path}"
-    env["PS1"] = r"student@cs345:\w$ "
+    env["PS1"] = os.environ.get("LABSHOT_PS1", r"\u@\h:\w\$ ")
     env["TERM"] = "xterm-256color"
 
     bash_proc = subprocess.Popen(

@@ -96,9 +96,13 @@ class PersistentShellController:
         cwd_before = self.current_cwd
 
         # Send run command
-        payload = json.dumps({"action": "run", "cmd": command}) + "\n"
-        self.wfile.write(payload)
-        self.wfile.flush()
+        try:
+            payload = json.dumps({"action": "run", "cmd": command}) + "\n"
+            self.wfile.write(payload)
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, ConnectionError, OSError):
+            self.is_running = False
+            raise RuntimeError("Terminal window was closed or disconnected.")
 
         # Wait for completion with timeout
         self.conn.settimeout(timeout_sec)

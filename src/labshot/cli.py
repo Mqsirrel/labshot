@@ -168,6 +168,12 @@ def run_repl(session: LabSession) -> None:
                 print("    1. Make sure the terminal window is visible and not minimized.")
                 print(f"    2. Re-enter your command or run :redo {target_q}\n")
             except Exception as ex:
+                err_str = str(ex).lower()
+                if "closed" in err_str or "broken pipe" in err_str or isinstance(ex, (BrokenPipeError, ConnectionResetError)):
+                    print("\n⚠️  Terminal window was closed.")
+                    print("  Saving all recorded evidence...")
+                    handle_done(session)
+                    break
                 print(f"\n✗ Command execution error: {ex}\n")
 
         except (KeyboardInterrupt, EOFError):

@@ -175,10 +175,12 @@ def main():
 
             # Ensure all terminal output (including final PS1 prompt) is flushed to GUI
             time.sleep(0.14)
-            sys.stdout.buffer.flush()
-
-            wf.write(json.dumps({"status": "done", "exit_code": exit_code, "pwd": pwd}) + "\n")
-            wf.flush()
+            try:
+                sys.stdout.buffer.flush()
+                wf.write(json.dumps({"status": "done", "exit_code": exit_code, "pwd": pwd}) + "\n")
+                wf.flush()
+            except (BrokenPipeError, OSError):
+                break
 
     running = False
     try:

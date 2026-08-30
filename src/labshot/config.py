@@ -8,28 +8,28 @@ from typing import Dict, Any
 
 @dataclass
 class TerminalTheme:
-    """Terminal theme configuration matching user's sleek Konsole / MaterialYou appearance."""
-    name: str = "Konsole-MaterialYou"
-    background: str = "#0c0e14"       # Deep dark background from Konsole MaterialYou
-    foreground: str = "#d2ddf2"       # Ice-blue/white high-contrast text
+    """Terminal theme configuration matching Tokyo Night (Deep Modern)."""
+    name: str = "Tokyo-Night-Modern"
+    background: str = "#1a1b26"       # Deep modern Tokyo Night dark background
+    foreground: str = "#c0caf5"       # Crisp high-contrast lavender-white text
     # Normal colors
-    black: str = "#1e222b"
-    red: str = "#e06c75"
-    green: str = "#98c379"
-    yellow: str = "#e5c07b"
-    blue: str = "#61afef"
-    magenta: str = "#c678dd"
-    cyan: str = "#56b6c2"
-    white: str = "#c2c2cb"
+    black: str = "#15161e"
+    red: str = "#f7768e"
+    green: str = "#9ece6a"
+    yellow: str = "#e0af68"
+    blue: str = "#7aa2f7"
+    magenta: str = "#bb9af7"
+    cyan: str = "#7dcfff"
+    white: str = "#a9b1d6"
     # Bright colors
-    bright_black: str = "#454d5a"
-    bright_red: str = "#e57c85"
-    bright_green: str = "#a3ca86"
-    bright_yellow: str = "#ebd18a"
-    bright_blue: str = "#71b7f2"
-    bright_magenta: str = "#cf8ce2"
-    bright_cyan: str = "#68c5cf"
-    bright_white: str = "#ffffff"
+    bright_black: str = "#414868"
+    bright_red: str = "#ff7a93"
+    bright_green: str = "#b9f27c"
+    bright_yellow: str = "#ff9e64"
+    bright_blue: str = "#7da6ff"
+    bright_magenta: str = "#c099ff"
+    bright_cyan: str = "#0db9d7"
+    bright_white: str = "#c0caf5"
 
 
 @dataclass
@@ -37,9 +37,9 @@ class TerminalConfig:
     """Terminal window dimensions, typography and behavior."""
     columns: int = 110
     lines: int = 32
-    font_family: str = "Hack"
+    font_family: str = "JetBrainsMono Nerd Font"
     font_size: float = 12.5
-    padding_x: int = 14
+    padding_x: int = 16
     padding_y: int = 14
     opacity: float = 1.0
     theme: TerminalTheme = field(default_factory=TerminalTheme)

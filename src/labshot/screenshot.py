@@ -187,6 +187,47 @@ def verify_png_file(path: Path) -> bool:
 class ScreenshotManager:
     """Detects available screenshot engines and performs verified window captures."""
 
+def smart_trim_screenshot(img_path: Path, padding_bottom: int = 26, min_height: int = 140) -> None:
+    """Smart content-aware vertical trimming: remove empty terminal bottom background space."""
+    try:
+        from PIL import Image
+        img = Image.open(img_path).convert("RGB")
+        w, h = img.size
+        if h <= min_height:
+            return
+
+        # Sample background color near bottom-left corner
+        bg_r, bg_g, bg_b = img.getpixel((20, h - 20))
+        pixels = img.load()
+        last_content_y = 0
+
+        # Scan rows from bottom to top (exclude rightmost 25px scrollbar area)
+        scan_width = max(10, w - 25)
+        for y in range(h - 1, 0, -1):
+            row_has_text = False
+            for x in range(10, scan_width, 2):
+                r, g, b = pixels[x, y]
+                diff = abs(r - bg_r) + abs(g - bg_g) + abs(b - bg_b)
+                if diff > 35:
+                    row_has_text = True
+                    break
+            if row_has_text:
+                last_content_y = y
+                break
+
+        if last_content_y > 0:
+            crop_h = min(h, last_content_y + padding_bottom)
+            crop_h = max(min_height, crop_h)
+            if crop_h < h - 20:  # Only crop if substantial empty space was cut
+                cropped = img.crop((0, 0, w, crop_h))
+                cropped.save(img_path, "PNG", optimize=True)
+    except Exception:
+        pass
+
+
+class ScreenshotManager:
+    """Orchestrates screenshot backends with auto-detection and fallbacks."""
+
     def __init__(self, preferred_backend: Optional[str] = None):
         self.backends: List[ScreenshotBackend] = [
             SpectacleBackend(),
@@ -220,7 +261,7 @@ class ScreenshotManager:
         delay_seconds: float = 0.08,
         terminal_mgr: Optional[Any] = None,
     ) -> Path:
-        """Capture screenshot of the terminal window and save to output_path."""
+        """Capture screenshot of the terminal window, apply smart auto-trim, and save to output_path."""
         if not self.active_backend:
             raise ScreenshotError(
                 "No supported screenshot utility found on this system. "
@@ -240,16 +281,20 @@ class ScreenshotManager:
             time.sleep(delay_seconds)
 
         success = self.active_backend.capture_window(output_path, terminal_mgr=terminal_mgr)
-        if not success or not verify_png_file(output_path):
-            # Try other available backends as fallback
-            for fallback in self.backends:
-                if fallback != self.active_backend and fallback.is_available():
-                    if fallback.capture_window(output_path, terminal_mgr=terminal_mgr) and verify_png_file(output_path):
-                        return output_path
+        if success and verify_png_file(output_path):
+            smart_trim_screenshot(output_path)
+            return output_path
 
-            raise ScreenshotError(
-                f"Failed to capture window screenshot to '{output_path}' using {self.active_backend.name()}. "
-                "Ensure the terminal window is visible on screen."
-            )
+        # Try other available backends as fallback
+        for fallback in self.backends:
+            if fallback != self.active_backend and fallback.is_available():
+                if fallback.capture_window(output_path, terminal_mgr=terminal_mgr) and verify_png_file(output_path):
+                    smart_trim_screenshot(output_path)
+                    return output_path
+
+        raise ScreenshotError(
+            f"Failed to capture window screenshot to '{output_path}' using {self.active_backend.name()}. "
+            "Ensure the terminal window is visible on screen."
+        )
 
         return output_path

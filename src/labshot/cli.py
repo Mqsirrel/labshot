@@ -62,11 +62,17 @@ def print_status(session: LabSession) -> None:
     print(f"Screenshots: {len(existing)}\n")
 
 
+from labshot.report import generate_completed_docx, convert_docx_to_pdf
+
 def handle_done(session: LabSession) -> None:
     """Finish the lab session, export submission to Desktop, and summarize results."""
     sub_dir = session.export()
     existing = session.storage.get_existing_question_numbers()
     count = len(existing)
+
+    # Optional: Automatically fill Word template if present on Desktop
+    docx_report = generate_completed_docx(storage=session.storage)
+    pdf_report = convert_docx_to_pdf(docx_report) if docx_report else None
 
     print("\n" + "=" * 52)
     print("  ✓ Lab complete")
@@ -74,8 +80,14 @@ def handle_done(session: LabSession) -> None:
     print(f"  {count} screenshots saved")
     print(f"  Desktop Output:")
     print(f"    {format_path_for_display(session.storage.lab_dir)}")
-    print(f"  Submission Package (for DOCX):")
+    print(f"  Submission Package:")
     print(f"    {format_path_for_display(sub_dir)}")
+    if docx_report and docx_report.exists():
+        print(f"  Completed Word Report (DOCX):")
+        print(f"    {format_path_for_display(docx_report)}")
+    if pdf_report and pdf_report.exists():
+        print(f"  Completed PDF Report (PDF):")
+        print(f"    {format_path_for_display(pdf_report)}")
     print("=" * 52 + "\n")
 
 

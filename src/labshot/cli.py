@@ -1,4 +1,4 @@
-"""Command-Line Interface and simplified interactive student workflow for labshot."""
+"""Command-Line Interface and direct, zero-wizard student workflow for labshot."""
 
 import argparse
 import os
@@ -25,55 +25,17 @@ def format_path_for_display(path: Path) -> str:
         return str(path)
 
 
-def select_or_create_lab_interactively(base_dir: Optional[Path] = None) -> Optional[str]:
-    """Guide the student interactively through choosing or creating a lab."""
+def resolve_lab_name(args_lab: Optional[str] = None, base_dir: Optional[Path] = None) -> str:
+    """Directly resolve lab name without any interactive wizard questionnaires."""
+    if args_lab and args_lab.strip():
+        return args_lab.strip()
+
+    # Automatically use the most recent existing lab, or default directly
     labs = LabStorage.list_all_labs(base_dir=base_dir)
+    if labs:
+        return labs[-1]["name"]
 
-    print("Labshot — Linux Lab Evidence Recorder")
-
-    if len(labs) == 1:
-        lab = labs[0]
-        comp_str = f"Q1–Q{lab['count']}" if lab['count'] > 1 else (f"Q1" if lab['count'] == 1 else "None")
-        print(f"Existing lab found:")
-        print(f"  {lab['name']} (Completed: {comp_str})")
-        ans = input(f"Resume from Q{lab['next']}? [Y/n]: ").strip().lower()
-        if ans in ("", "y", "yes"):
-            return lab["name"]
-        elif ans in ("q", "quit", "exit"):
-            return None
-        else:
-            name = input("Lab name: ").strip()
-            return name or "Essential Linux Commands"
-
-    elif len(labs) > 1:
-        print("\nExisting Labs:")
-        for idx, lab in enumerate(labs, start=1):
-            comp_str = f"Q1–Q{lab['count']}" if lab['count'] > 1 else (f"Q1" if lab['count'] == 1 else "Empty")
-            print(f"  {idx}. Resume \"{lab['name']}\" ({comp_str})")
-        print(f"  {len(labs) + 1}. Start new lab")
-        print(f"  {len(labs) + 2}. Exit")
-
-        choice = input(f"Choose [1]: ").strip()
-        if not choice:
-            choice = "1"
-
-        if choice.isdigit():
-            val = int(choice)
-            if 1 <= val <= len(labs):
-                return labs[val - 1]["name"]
-            elif val == len(labs) + 1:
-                name = input("Lab name: ").strip()
-                return name or "Essential Linux Commands"
-            else:
-                return None
-        elif choice.lower() in ("q", "quit", "exit"):
-            return None
-        else:
-            return choice
-
-    else:
-        name = input("Lab name: ").strip()
-        return name or "Essential Linux Commands"
+    return "Essential Linux Commands"
 
 
 def print_help() -> None:
@@ -101,7 +63,7 @@ def print_status(session: LabSession) -> None:
 
 
 def handle_done(session: LabSession) -> None:
-    """Finish the lab session, export submission, and summarize results."""
+    """Finish the lab session, export submission, and summarize results without prompts."""
     sub_dir = session.export()
     existing = session.storage.get_existing_question_numbers()
     count = len(existing)
@@ -114,28 +76,16 @@ def handle_done(session: LabSession) -> None:
     print(f"    {format_path_for_display(session.storage.lab_dir)}")
     print(f"  Submission Package:")
     print(f"    {format_path_for_display(sub_dir)}")
-    print("=" * 50)
-
-    # Offer to open folder if GUI file manager is available
-    if shutil.which("xdg-open") and sys.stdin.isatty():
-        try:
-            ans = input("\nOpen screenshot folder? [y/N]: ").strip().lower()
-            if ans in ("y", "yes"):
-                subprocess.Popen(["xdg-open", str(session.storage.lab_dir)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        except Exception:
-            pass
+    print("=" * 50 + "\n")
 
 
 def run_repl(session: LabSession) -> None:
-    """Main interactive student REPL."""
-    print(f"Lab: {session.lab_name}")
-    print(f"Lab directory:\n  {format_path_for_display(session.storage.lab_dir)}")
-    print("Starting real terminal session...")
-    
+    """Main direct student REPL."""
     if not session.is_active():
         session.start()
 
-    print("Ready.\n")
+    print(f"Lab: {session.lab_name}")
+    print(f"Ready.\n")
 
     redo_target: Optional[int] = None
 
@@ -235,11 +185,17 @@ def main() -> None:
         description="Real Terminal Lab Screenshot Recorder for Linux university labs.",
     )
     parser.add_argument(
+        "lab_name_pos",
+        nargs="?",
+        default=None,
+        help="Optional lab name (e.g. 'Essential Linux Commands')",
+    )
+    parser.add_argument(
         "--lab",
         "-l",
         type=str,
         default=None,
-        help="Name of the university lab (e.g. 'Essential Linux Commands')",
+        help="Name of the university lab",
     )
     parser.add_argument(
         "--term",
@@ -260,16 +216,16 @@ def main() -> None:
 
     # Subcommand: export
     export_parser = subparsers.add_parser("export", help="Export screenshots and commands for lab submission")
-    export_parser.add_argument("--lab", "-l", type=str, default=None, help="Lab name to export")
+    export_parser.add_argument("lab", nargs="?", default=None, help="Lab name to export")
     export_parser.add_argument("--out", "-o", type=str, default=None, help="Output destination folder")
 
     # Subcommand: list
     list_parser = subparsers.add_parser("list", help="List recorded questions for a lab")
-    list_parser.add_argument("--lab", "-l", type=str, default=None, help="Lab name")
+    list_parser.add_argument("lab", nargs="?", default=None, help="Lab name")
 
     # Subcommand: status
     status_parser = subparsers.add_parser("status", help="Show status of a lab session")
-    status_parser.add_argument("--lab", "-l", type=str, default=None, help="Lab name")
+    status_parser.add_argument("lab", nargs="?", default=None, help="Lab name")
 
     # Subcommand: redo
     redo_parser = subparsers.add_parser("redo", help="Re-take a specific question")
@@ -281,7 +237,7 @@ def main() -> None:
 
     # If subcommand supplied
     if args.subcommand == "export":
-        lab_name = args.lab or "Essential Linux Commands"
+        lab_name = resolve_lab_name(args.lab)
         storage = LabStorage(lab_name=lab_name)
         out_dir = Path(args.out) if args.out else None
         dest = storage.export_submission(target_dir=out_dir)
@@ -289,11 +245,11 @@ def main() -> None:
         sys.exit(0)
 
     if args.subcommand == "list":
-        lab_name = args.lab or "Essential Linux Commands"
+        lab_name = resolve_lab_name(args.lab)
         storage = LabStorage(lab_name=lab_name)
         meta = storage.load_metadata()
         questions = meta.get("questions", [])
-        print(f"\n--- Recorded Questions for {lab_name} ---")
+        print(f"\n--- Recorded Questions: {lab_name} ---")
         if not questions:
             print("  No questions recorded yet.\n")
         else:
@@ -303,7 +259,7 @@ def main() -> None:
         sys.exit(0)
 
     if args.subcommand == "status":
-        lab_name = args.lab or "Essential Linux Commands"
+        lab_name = resolve_lab_name(args.lab)
         storage = LabStorage(lab_name=lab_name)
         existing = storage.get_existing_question_numbers()
         print(f"\n--- Lab Status: {lab_name} ---")
@@ -312,13 +268,9 @@ def main() -> None:
         print(f"  Next Question:       Q{storage.get_next_question_number()}\n")
         sys.exit(0)
 
-    # Determine lab name interactively if not passed via --lab flag
-    lab_name = args.lab
-    if not lab_name:
-        lab_name = select_or_create_lab_interactively()
-        if not lab_name:
-            print("Exiting.")
-            sys.exit(0)
+    # Directly resolve lab name: no wizard, no questions
+    specified_name = args.lab or args.lab_name_pos
+    lab_name = resolve_lab_name(specified_name)
 
     session = LabSession(
         lab_name=lab_name,

@@ -1,4 +1,4 @@
-"""Evidence Card widget displaying execution and screenshot verification state."""
+"""Sleek Evidence Card widget displaying execution state and actions."""
 
 from pathlib import Path
 from typing import Dict, Optional
@@ -22,20 +22,17 @@ class EvidenceCard(Widget):
     command_status: reactive[str] = reactive("idle")  # idle, running, success, error
     screenshot_status: reactive[str] = reactive("none")  # none, capturing, success, error
     validation_status: reactive[str] = reactive("none")  # none, success, error
-    detail_message: reactive[str] = reactive("")
 
     def __init__(self):
-        super().__init__(id="evidence-box")
+        super().__init__(id="evidence-container")
 
     def compose(self) -> ComposeResult:
-        yield Label("Evidence", classes="panel-title")
-        with Vertical(id="evidence-status-container"):
-            yield Static("○ Ready for command", id="ev-line-1", classes="status-line status-muted")
-            yield Static("○ Screenshot pending", id="ev-line-2", classes="status-line status-muted")
-            yield Static("○ Validation pending", id="ev-line-3", classes="status-line status-muted")
-        yield Label("", id="ev-detail-label", classes="status-line")
+        with Vertical():
+            yield Label("● Status: Ready for command", id="ev-status-line", classes="status-badge status-muted")
+            yield Label("Screenshot will be captured automatically on Enter.", id="ev-detail-line", classes="status-muted")
 
         with Horizontal(id="actions-bar"):
+            yield Button("Run Setup (No Snap)", id="btn-run-setup", variant="default", classes="-small")
             yield Button("Retry Shot (R)", id="btn-retry-shot", variant="warning", classes="-small")
             yield Button("Preview (P)", id="btn-preview-shot", variant="primary", classes="-small")
             yield Button("Next Q (N)", id="btn-next-q", variant="success", classes="-small")
@@ -48,16 +45,26 @@ class EvidenceCard(Widget):
         self.command_status = "running"
         self.screenshot_status = "none"
         self.validation_status = "none"
-        self.detail_message = f"Executing: {command}"
 
-        self.query_one("#ev-line-1", Static).update("⟳ Executing Linux command in real terminal...")
-        self.query_one("#ev-line-1", Static).set_classes("status-line status-running")
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update("⟳ Executing Linux command in real terminal...")
+        lbl_status.set_classes("status-badge status-running")
 
-        self.query_one("#ev-line-2", Static).update("○ Waiting for command completion...")
-        self.query_one("#ev-line-2", Static).set_classes("status-line status-muted")
+        lbl_detail = self.query_one("#ev-detail-line", Label)
+        lbl_detail.update(f"Running: {command}")
+        self._update_buttons_visibility()
 
-        self.query_one("#ev-line-3", Static).update("○ Validation pending")
-        self.query_one("#ev-line-3", Static).set_classes("status-line status-muted")
+    def set_setup_success(self, cwd: str) -> None:
+        """Update state when a setup/navigation command completes without taking a screenshot."""
+        self.command_status = "success"
+        self.screenshot_status = "none"
+
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update("✓ Setup command executed (no screenshot taken)")
+        lbl_status.set_classes("status-badge status-success")
+
+        lbl_detail = self.query_one("#ev-detail-line", Label)
+        lbl_detail.update(f"Current Path: {cwd}")
         self._update_buttons_visibility()
 
     def set_capturing(self) -> None:
@@ -65,11 +72,9 @@ class EvidenceCard(Widget):
         self.command_status = "success"
         self.screenshot_status = "capturing"
 
-        self.query_one("#ev-line-1", Static).update("✓ Command executed successfully")
-        self.query_one("#ev-line-1", Static).set_classes("status-line status-success")
-
-        self.query_one("#ev-line-2", Static).update("⟳ Capturing real terminal window...")
-        self.query_one("#ev-line-2", Static).set_classes("status-line status-running")
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update("⟳ Capturing terminal window...")
+        lbl_status.set_classes("status-badge status-running")
         self._update_buttons_visibility()
 
     def set_success(self, shot_path: Path, exit_code: int = 0) -> None:
@@ -78,15 +83,13 @@ class EvidenceCard(Widget):
         self.screenshot_status = "success"
         self.validation_status = "success"
 
-        self.query_one("#ev-line-1", Static).update(f"✓ Command executed (Exit: {exit_code})")
-        self.query_one("#ev-line-1", Static).set_classes("status-line status-success")
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update(f"✓ Evidence Captured & Verified (Exit: {exit_code})")
+        lbl_status.set_classes("status-badge status-success")
 
-        self.query_one("#ev-line-2", Static).update(f"✓ Screenshot captured → {shot_path.name}")
-        self.query_one("#ev-line-2", Static).set_classes("status-line status-success")
-
-        self.query_one("#ev-line-3", Static).update(f"✓ Evidence verified and committed")
-        self.query_one("#ev-line-3", Static).set_classes("status-line status-success")
-        self._update_buttons_visibility()
+        lbl_detail = self.query_one("#ev-detail-line", Label)
+        lbl_detail.update(f"Saved: {shot_path.name} → Desktop Submission Ready")
+        self._update_buttons_visibility(has_evidence=True)
 
     def set_screenshot_error(self, error_msg: str) -> None:
         """Update state when command ran but screenshot capture failed."""
@@ -94,14 +97,12 @@ class EvidenceCard(Widget):
         self.screenshot_status = "error"
         self.validation_status = "none"
 
-        self.query_one("#ev-line-1", Static).update("✓ Command executed successfully")
-        self.query_one("#ev-line-1", Static).set_classes("status-line status-success")
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update("✗ Screenshot capture failed (Command succeeded)")
+        lbl_status.set_classes("status-badge status-error")
 
-        self.query_one("#ev-line-2", Static).update("✗ Screenshot capture failed")
-        self.query_one("#ev-line-2", Static).set_classes("status-line status-error")
-
-        self.query_one("#ev-line-3", Static).update("⚠️ Evidence was NOT committed. Press [R] to retry screenshot.")
-        self.query_one("#ev-line-3", Static).set_classes("status-line status-error")
+        lbl_detail = self.query_one("#ev-detail-line", Label)
+        lbl_detail.update("Press [R] to retry screenshot without re-running the command.")
         self._update_buttons_visibility()
 
     def set_command_error(self, error_msg: str) -> None:
@@ -110,8 +111,12 @@ class EvidenceCard(Widget):
         self.screenshot_status = "none"
         self.validation_status = "none"
 
-        self.query_one("#ev-line-1", Static).update(f"✗ Command failed: {error_msg}")
-        self.query_one("#ev-line-1", Static).set_classes("status-line status-error")
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update(f"✗ Command execution error")
+        lbl_status.set_classes("status-badge status-error")
+
+        lbl_detail = self.query_one("#ev-detail-line", Label)
+        lbl_detail.update(str(error_msg))
         self._update_buttons_visibility()
 
     def set_existing_record(self, record: Dict) -> None:
@@ -119,14 +124,12 @@ class EvidenceCard(Widget):
         shot_name = Path(record.get("screenshot", "")).name
         exit_code = record.get("exit_code", 0)
 
-        self.query_one("#ev-line-1", Static).update(f"✓ Command: {record.get('command', '')} (Exit: {exit_code})")
-        self.query_one("#ev-line-1", Static).set_classes("status-line status-success")
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update(f"✓ Completed (Exit: {exit_code}) → {shot_name}")
+        lbl_status.set_classes("status-badge status-success")
 
-        self.query_one("#ev-line-2", Static).update(f"✓ Screenshot: {shot_name}")
-        self.query_one("#ev-line-2", Static).set_classes("status-line status-success")
-
-        self.query_one("#ev-line-3", Static).update(f"✓ Verified PNG on Desktop")
-        self.query_one("#ev-line-3", Static).set_classes("status-line status-success")
+        lbl_detail = self.query_one("#ev-detail-line", Label)
+        lbl_detail.update(f"Command: {record.get('command', '')}")
         self._update_buttons_visibility(has_evidence=True)
 
     def reset_for_new_question(self, q_num: int) -> None:
@@ -135,14 +138,12 @@ class EvidenceCard(Widget):
         self.screenshot_status = "none"
         self.validation_status = "none"
 
-        self.query_one("#ev-line-1", Static).update(f"○ Ready to execute Question {q_num}")
-        self.query_one("#ev-line-1", Static).set_classes("status-line status-muted")
+        lbl_status = self.query_one("#ev-status-line", Label)
+        lbl_status.update(f"● Question {q_num}: Ready for command")
+        lbl_status.set_classes("status-badge status-muted")
 
-        self.query_one("#ev-line-2", Static).update("○ Screenshot pending")
-        self.query_one("#ev-line-2", Static).set_classes("status-line status-muted")
-
-        self.query_one("#ev-line-3", Static).update("○ Validation pending")
-        self.query_one("#ev-line-3", Static).set_classes("status-line status-muted")
+        lbl_detail = self.query_one("#ev-detail-line", Label)
+        lbl_detail.update("Screenshot will be captured automatically on Enter.")
         self._update_buttons_visibility(has_evidence=False)
 
     def _update_buttons_visibility(self, has_evidence: bool = False) -> None:
@@ -166,3 +167,5 @@ class EvidenceCard(Widget):
             self.post_message(self.ActionRequested("preview"))
         elif event.button.id == "btn-next-q":
             self.post_message(self.ActionRequested("next"))
+        elif event.button.id == "btn-run-setup":
+            self.post_message(self.ActionRequested("setup"))

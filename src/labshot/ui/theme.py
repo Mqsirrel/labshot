@@ -1,74 +1,60 @@
-"""Theme constants, semantic color palette and CSS stylesheets for Labshot TUI."""
+"""Theme constants, semantic color palette and sleek CSS stylesheets for Labshot TUI."""
 
 APP_CSS = """
 /* =============================================================================
-   Labshot TUI — Modern, Restrained Developer Terminal Style
+   Labshot TUI — Ultra-Clean, Modern Developer Workspace
    ============================================================================= */
 
 Screen {
-    background: #1a1b26;
-    color: #c0caf5;
+    background: #181926;
+    color: #cad3f5;
 }
 
 /* Header & Footer */
 Header {
-    background: #16161e;
-    color: #7aa2f7;
+    background: #1e2030;
+    color: #8aadf4;
     height: 1;
     dock: top;
 }
 
 Footer {
-    background: #16161e;
-    color: #a9b1d6;
+    background: #1e2030;
+    color: #a5adcb;
     height: 1;
     dock: bottom;
-}
-
-/* Common Container Styles */
-.panel {
-    background: #1f2335;
-    border: solid #3b4261;
-    padding: 1 2;
-    margin: 0 1;
-}
-
-.panel-title {
-    color: #7aa2f7;
-    text-style: bold;
-    margin-bottom: 1;
 }
 
 /* Home Screen */
 #home-container {
     align: center middle;
-    width: 78;
+    width: 72;
     height: auto;
-    max-height: 90%;
-    border: heavy #7aa2f7;
-    background: #1f2335;
+    max-height: 85%;
+    border: round #8aadf4;
+    background: #1e2030;
     padding: 1 3;
 }
 
 #home-title {
     text-align: center;
-    color: #7aa2f7;
+    color: #8aadf4;
     text-style: bold;
-    margin-bottom: 1;
+    margin-bottom: 0;
 }
 
 #home-subtitle {
     text-align: center;
-    color: #565f89;
+    color: #6e738d;
     margin-bottom: 1;
 }
 
 #labs-list-view {
     height: auto;
-    max-height: 10;
-    border: round #3b4261;
+    max-height: 8;
+    border: solid #363a4f;
     margin-bottom: 1;
-    background: #16161e;
+    background: #181926;
 }
 
 .home-btn-row {
@@ -89,10 +75,10 @@ Footer {
 }
 
 #left-pane {
-    width: 32;
+    width: 28;
     height: 100%;
-    border-right: solid #3b4261;
-    background: #16161e;
+    border-right: solid #363a4f;
+    background: #181926;
     padding: 1;
 }
 
@@ -100,7 +86,7 @@ Footer {
     width: 1fr;
     height: 100%;
     padding: 1 2;
-    background: #1a1b26;
+    background: #1e2030;
 }
 
 /* Question List */
@@ -110,57 +96,63 @@ Footer {
 
 .q-item {
     padding: 0 1;
-    margin: 0;
-    color: #a9b1d6;
+    margin: 0 0 1 0;
+    color: #a5adcb;
 }
 
 .q-item-active {
-    color: #73daca;
+    color: #8aadf4;
     text-style: bold;
-    background: #24283b;
+    background: #24273a;
+    border-left: thick #8aadf4;
 }
 
 .q-item-done {
-    color: #9ece6a;
+    color: #a6da95;
 }
 
-/* Right Pane - Question Detail Box */
-#q-detail-box {
-    background: #1f2335;
-    border: round #414868;
-    padding: 1 2;
-    margin-bottom: 1;
+/* Right Pane - Question Workspace */
+#q-workspace {
+    height: 1fr;
+}
+
+#q-meta-bar {
+    layout: horizontal;
     height: auto;
-    min-height: 5;
+    margin-bottom: 1;
+    align: left middle;
 }
 
-#q-number-heading {
-    color: #7dcfff;
+#q-badge {
+    background: #8aadf4;
+    color: #181926;
+    text-style: bold;
+    padding: 0 1;
+    margin-right: 2;
+}
+
+#q-pwd-label {
+    color: #eed49f;
     text-style: bold;
 }
 
-#q-text {
-    color: #c0caf5;
-    margin-top: 1;
-}
-
 /* Command Prompt Input Area */
-#prompt-box {
-    background: #16161e;
-    border: round #7aa2f7;
-    padding: 1;
+#prompt-container {
+    background: #181926;
+    border: round #8aadf4;
+    padding: 1 2;
     margin-bottom: 1;
     height: auto;
 }
 
 #prompt-label {
-    color: #e0af68;
+    color: #eed49f;
     text-style: bold;
 }
 
 #cmd-input {
-    background: #1f2335;
-    color: #c0caf5;
+    background: #24273a;
+    color: #cad3f5;
     border: none;
     padding: 0 1;
     margin-top: 1;
@@ -168,39 +160,41 @@ Footer {
 
 #cmd-input:focus {
     border: none;
-    background: #24283b;
+    background: #282c44;
 }
 
-/* Evidence Card Box */
-#evidence-box {
-    background: #1f2335;
-    border: round #3b4261;
+#cmd-tip-label {
+    color: #6e738d;
+    margin-top: 1;
+}
+
+/* Evidence Status Card */
+#evidence-container {
+    background: #181926;
+    border: round #363a4f;
     padding: 1 2;
     height: auto;
-    min-height: 6;
+    min-height: 4;
 }
 
-.status-line {
-    margin: 0 0;
+.status-badge {
+    text-style: bold;
 }
 
 .status-success {
-    color: #9ece6a;
-    text-style: bold;
+    color: #a6da95;
 }
 
 .status-running {
-    color: #e0af68;
-    text-style: bold;
+    color: #eed49f;
 }
 
 .status-error {
-    color: #f7768e;
-    text-style: bold;
+    color: #ed8796;
 }
 
 .status-muted {
-    color: #565f89;
+    color: #6e738d;
 }
 
 /* Action Buttons Bar */
@@ -221,33 +215,38 @@ ModalScreen {
 }
 
 .modal-dialog {
-    width: 60;
+    width: 64;
     height: auto;
-    border: heavy #7aa2f7;
-    background: #1f2335;
+    border: round #8aadf4;
+    background: #1e2030;
     padding: 1 2;
 }
 
 .modal-title {
     text-align: center;
-    color: #7aa2f7;
+    color: #8aadf4;
     text-style: bold;
     margin-bottom: 1;
 }
 
 /* Button Variants */
 Button.-primary {
-    background: #7aa2f7;
-    color: #15161e;
+    background: #8aadf4;
+    color: #181926;
 }
 
 Button.-success {
-    background: #9ece6a;
-    color: #15161e;
+    background: #a6da95;
+    color: #181926;
+}
+
+Button.-warning {
+    background: #eed49f;
+    color: #181926;
 }
 
 Button.-error {
-    background: #f7768e;
-    color: #15161e;
+    background: #ed8796;
+    color: #181926;
 }
 """

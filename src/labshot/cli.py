@@ -161,6 +161,17 @@ def run_repl(session: LabSession) -> None:
                         print(f"Unknown command ':{cmd}'. Type help for commands.")
                         continue
 
+            # Setup/Navigation commands (prefix with ';', '>', or '~' e.g. '; cd ..')
+            if raw_input.startswith(";") or raw_input.startswith(">") or raw_input.startswith("~"):
+                setup_cmd = raw_input[1:].strip()
+                if setup_cmd:
+                    try:
+                        res = session.execute_command_only(setup_cmd)
+                        print(f"✓ Setup executed: {setup_cmd} (Path: {format_path_for_display(Path(res.cwd_after))})")
+                    except Exception as ex:
+                        print(f"✗ Setup error: {ex}")
+                continue
+
             # Execute real Linux command
             target_q = redo_target if redo_target is not None else session.current_q_num
             is_redo = (redo_target is not None)

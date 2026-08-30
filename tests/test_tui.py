@@ -29,14 +29,12 @@ class TestTUIWidgetsAndScreens(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(len(app.CSS) > 100)
 
     def test_question_list_item_text(self):
-        item_done = QuestionListItem(q_num=1, is_done=True, is_current=False)
+        item_done = QuestionListItem(q_num=1, is_done=True, is_current=False, command="pwd")
         self.assertIn("✓", item_done._build_text())
+        self.assertIn("pwd", item_done._build_text())
 
         item_active = QuestionListItem(q_num=2, is_done=False, is_current=True)
-        self.assertIn("→", item_active._build_text())
-
-        item_pending = QuestionListItem(q_num=3, is_done=False, is_current=False)
-        self.assertIn("○", item_pending._build_text())
+        self.assertIn("▶", item_active._build_text())
 
     def test_command_prompt_widget(self):
         prompt = CommandPrompt(placeholder="Test prompt")
@@ -60,6 +58,10 @@ class TestTUIWidgetsAndScreens(unittest.IsolatedAsyncioTestCase):
             
             ev.set_running("pwd")
             self.assertEqual(ev.command_status, "running")
+
+            ev.set_setup_success(cwd="~/Desktop")
+            self.assertEqual(ev.command_status, "success")
+            self.assertEqual(ev.screenshot_status, "none")
 
             ev.set_capturing()
             self.assertEqual(ev.screenshot_status, "capturing")

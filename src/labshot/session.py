@@ -70,7 +70,7 @@ class LabSession:
         q_num = question_number if question_number is not None else self.current_q_num
         shot_path = self.storage.get_screenshot_path(q_num)
 
-        # 1. Activate terminal window
+        # 1. Activate terminal window before command
         self.shell.activate_terminal_window()
 
         # 2. Execute command in persistent shell
@@ -79,10 +79,11 @@ class LabSession:
         # 3. Ensure terminal window is in focus
         self.shell.activate_terminal_window()
 
-        # 4. Capture native active window screenshot
+        # 4. Capture native window screenshot specifically
         self.screenshot_mgr.capture(
             output_path=shot_path,
             delay_seconds=self.config.post_command_delay,
+            terminal_mgr=self.shell.terminal_mgr,
         )
 
         # 5. Record command, metadata, and history

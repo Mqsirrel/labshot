@@ -1,18 +1,34 @@
 """Terminal emulator management, configuration generation, and window activation."""
 
+import json
 import os
 import shutil
 import subprocess
 import tempfile
 import time
+import uuid
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from labshot.config import LabConfig, TerminalConfig, DEFAULT_CONFIG
 
 
+@dataclass
+class WindowGeometry:
+    """Window pixel coordinates and dimensions."""
+    x: int
+    y: int
+    width: int
+    height: int
+
+    def to_geometry_str(self) -> str:
+        """Format as 'X,Y WxH' string for grim / slurp."""
+        return f"{self.x},{self.y} {self.width}x{self.height}"
+
+
 class TerminalManager:
-    """Detects, configures, and launches real GUI terminal emulators."""
+    """Detects, configures, launches, and activates real GUI terminal emulators."""
 
     def __init__(self, config: LabConfig = DEFAULT_CONFIG, preferred_term: Optional[str] = None):
         self.config = config
@@ -20,7 +36,9 @@ class TerminalManager:
         self.selected_term = self._detect_terminal(preferred_term)
         self.temp_dir: Optional[str] = None
         self.process: Optional[subprocess.Popen] = None
-        self.window_title: str = "labshot — CS345 Terminal"
+        self.session_token: str = uuid.uuid4().hex[:8]
+        self.window_title: str = f"labshot — CS345 Terminal [{self.session_token}]"
+        self.cached_window_id: Optional[str] = None
 
     def _detect_terminal(self, preferred: Optional[str] = None) -> str:
         """Detect the best available terminal emulator on the system."""
@@ -91,13 +109,15 @@ style = {{ shape = "Block", blinking = "Off" }}
         lab_name: str,
     ) -> subprocess.Popen:
         """Launch the GUI terminal window running the worker process."""
-        self.window_title = f"labshot — CS345 — {lab_name}"
+        self.session_token = uuid.uuid4().hex[:8]
+        self.window_title = f"labshot — CS345 — {lab_name} [{self.session_token}]"
         self.temp_dir = tempfile.mkdtemp(prefix="labshot_term_")
 
         env = os.environ.copy()
         env["LABSHOT_SOCK"] = str(sock_path)
         env["LABSHOT_FIFO"] = str(fifo_path)
         env["LABSHOT_TITLE"] = self.window_title
+        env["LABSHOT_TOKEN"] = self.session_token
         env["LABSHOT_PS1"] = self.config.prompt_template
 
         python_exec = shutil.which("python3") or "python3"
@@ -149,44 +169,145 @@ style = {{ shape = "Block", blinking = "Off" }}
         )
         return self.process
 
-    def activate_window(self) -> None:
-        """Activate/raise the terminal window using compositor or window manager methods."""
-        if shutil.which("qdbus6"):
+    def activate_window(self) -> bool:
+        """Activate/raise the terminal window using multi-tiered compositor and window manager APIs."""
+        target_pid = self.process.pid if self.process else -1
+        token = self.session_token
+
+        # Tier 1: KDE Plasma 6 & 5 KWin Scripting (Wayland & X11)
+        if shutil.which("qdbus6") or shutil.which("qdbus"):
+            qdbus_bin = shutil.which("qdbus6") or "qdbus"
             kwin_js = f"""
-            var windows = workspace.stackingOrder;
-            for (var i = 0; i < windows.length; i++) {{
-                var w = windows[i];
-                if (w.caption.indexOf("labshot") !== -1 || w.caption.indexOf("CS345") !== -1) {{
+            var wins = workspace.stackingOrder;
+            for (var i = 0; i < wins.length; i++) {{
+                var w = wins[i];
+                if ((w.pid && w.pid === {target_pid}) || (w.caption && w.caption.indexOf("{token}") !== -1)) {{
                     workspace.activeWindow = w;
                     break;
                 }}
             }}
             """
-            script_file = Path(self.temp_dir) / "focus.js" if self.temp_dir else Path("/tmp/labshot_focus.js")
+            script_file = Path(self.temp_dir) / "focus.js" if self.temp_dir else Path(f"/tmp/labshot_focus_{token}.js")
             try:
                 with open(script_file, "w", encoding="utf-8") as f:
                     f.write(kwin_js)
                 subprocess.run(
-                    ["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadDeclarativeScript", str(script_file), "labshot_focus"],
+                    [qdbus_bin, "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadDeclarativeScript", str(script_file), f"labshot_focus_{token}"],
                     capture_output=True, text=True, timeout=2
                 )
-                subprocess.run(["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.start"], capture_output=True, timeout=2)
-                time.sleep(0.04)
-                subprocess.run(["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.unloadScript", "labshot_focus"], capture_output=True, timeout=2)
-                return
+                subprocess.run([qdbus_bin, "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.start"], capture_output=True, timeout=2)
+                time.sleep(0.05)
+                subprocess.run([qdbus_bin, "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.unloadScript", f"labshot_focus_{token}"], capture_output=True, timeout=2)
+                return True
             except Exception:
                 pass
 
+        # Tier 2: Hyprland Wayland IPC (hyprctl)
+        if shutil.which("hyprctl"):
+            try:
+                subprocess.run(["hyprctl", "dispatch", "focuswindow", f"title:{token}"], capture_output=True, timeout=1)
+                return True
+            except Exception:
+                pass
+
+        # Tier 3: Sway Wayland IPC (swaymsg)
+        if shutil.which("swaymsg"):
+            try:
+                subprocess.run(["swaymsg", f"[title=\"{token}\"]", "focus"], capture_output=True, timeout=1)
+                return True
+            except Exception:
+                pass
+
+        # Tier 4: X11 / XWayland (xdotool / wmctrl)
         if shutil.which("xdotool"):
             try:
-                subprocess.run(["xdotool", "search", "--name", "labshot", "windowactivate"], capture_output=True, timeout=2)
+                res = subprocess.run(["xdotool", "search", "--name", token, "windowactivate", "--sync"], capture_output=True, timeout=1)
+                if res.returncode == 0:
+                    return True
             except Exception:
                 pass
-        elif shutil.which("wmctrl"):
+
+        if shutil.which("wmctrl"):
             try:
-                subprocess.run(["wmctrl", "-a", "labshot"], capture_output=True, timeout=2)
+                res = subprocess.run(["wmctrl", "-a", token], capture_output=True, timeout=1)
+                if res.returncode == 0:
+                    return True
             except Exception:
                 pass
+
+        return False
+
+    def find_x11_window_id(self) -> Optional[str]:
+        """Find the X11 Window ID corresponding to our terminal window."""
+        token = self.session_token
+
+        if shutil.which("xdotool"):
+            try:
+                res = subprocess.run(["xdotool", "search", "--name", token], capture_output=True, text=True, timeout=1)
+                if res.returncode == 0 and res.stdout.strip():
+                    # Return the last window ID found
+                    ids = res.stdout.strip().splitlines()
+                    if ids:
+                        self.cached_window_id = ids[-1].strip()
+                        return self.cached_window_id
+            except Exception:
+                pass
+
+        if shutil.which("wmctrl"):
+            try:
+                res = subprocess.run(["wmctrl", "-l"], capture_output=True, text=True, timeout=1)
+                if res.returncode == 0:
+                    for line in res.stdout.splitlines():
+                        if token in line:
+                            parts = line.split()
+                            if parts:
+                                self.cached_window_id = parts[0]
+                                return self.cached_window_id
+            except Exception:
+                pass
+
+        return None
+
+    def get_window_geometry(self) -> Optional[WindowGeometry]:
+        """Query compositor IPC to retrieve exact window bounding box."""
+        target_pid = self.process.pid if self.process else -1
+        token = self.session_token
+
+        # Hyprland
+        if shutil.which("hyprctl"):
+            try:
+                res = subprocess.run(["hyprctl", "activewindow", "-j"], capture_output=True, text=True, timeout=1)
+                if res.returncode == 0:
+                    data = json.loads(res.stdout)
+                    if token in data.get("title", "") or data.get("pid") == target_pid:
+                        at = data.get("at", [0, 0])
+                        size = data.get("size", [0, 0])
+                        return WindowGeometry(x=at[0], y=at[1], width=size[0], height=size[1])
+            except Exception:
+                pass
+
+        # Sway
+        if shutil.which("swaymsg"):
+            try:
+                res = subprocess.run(["swaymsg", "-t", "get_tree"], capture_output=True, text=True, timeout=1)
+                if res.returncode == 0:
+                    tree = json.loads(res.stdout)
+                    def find_node(node):
+                        if token in node.get("name", ""):
+                            r = node.get("rect", {})
+                            return WindowGeometry(x=r.get("x", 0), y=r.get("y", 0), width=r.get("width", 0), height=r.get("height", 0))
+                        for n in node.get("nodes", []) + node.get("floating_nodes", []):
+                            found = find_node(n)
+                            if found:
+                                return found
+                        return None
+                    geom = find_node(tree)
+                    if geom:
+                        return geom
+            except Exception:
+                pass
+
+        return None
 
     def cleanup(self) -> None:
         """Terminate the terminal process and remove temporary files."""

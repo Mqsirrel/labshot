@@ -1,0 +1,77 @@
+{
+  "lab": "Essential Linux Commands",
+  "created_at": "2026-08-30T23:31:30.002106",
+  "updated_at": "2026-08-30T23:31:40.014153",
+  "questions": [
+    {
+      "number": 1,
+      "command": "ls -la",
+      "screenshot": "screenshots/q1.png",
+      "command_file": "commands/q1.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:31:32.493257",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur"
+    },
+    {
+      "number": 2,
+      "command": "cd ..",
+      "screenshot": "screenshots/q2.png",
+      "command_file": "commands/q2.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:31:33.879853",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
+      "working_directory_after": "/home/albraa/Documents/antigravity"
+    },
+    {
+      "number": 3,
+      "command": "mkdir projects",
+      "screenshot": "screenshots/q3.png",
+      "command_file": "commands/q3.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:31:35.117032",
+      "working_directory_before": "/home/albraa/Documents/antigravity",
+      "working_directory_after": "/home/albraa/Documents/antigravity"
+    },
+    {
+      "number": 4,
+      "command": "pwd",
+      "screenshot": "screenshots/q4.png",
+      "command_file": "commands/q4.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:31:36.301686",
+      "working_directory_before": "/home/albraa/Documents/antigravity",
+      "working_directory_after": "/home/albraa/Documents/antigravity"
+    },
+    {
+      "number": 5,
+      "command": "cd projects",
+      "screenshot": "screenshots/q5.png",
+      "command_file": "commands/q5.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:31:37.616324",
+      "working_directory_before": "/home/albraa/Documents/antigravity",
+      "working_directory_after": "/home/albraa/Documents/antigravity/projects"
+    },
+    {
+      "number": 6,
+      "command": "touch test.txt",
+      "screenshot": "screenshots/q6.png",
+      "command_file": "commands/q6.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:31:38.847277",
+      "working_directory_before": "/home/albraa/Documents/antigravity/projects",
+      "working_directory_after": "/home/albraa/Documents/antigravity/projects"
+    },
+    {
+      "number": 7,
+      "command": "ls -la",
+      "screenshot": "screenshots/q7.png",
+      "command_file": "commands/q7.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:31:40.013785",
+      "working_directory_before": "/home/albraa/Documents/antigravity/projects",
+      "working_directory_after": "/home/albraa/Documents/antigravity/projects"
+    }
+  ]
+}

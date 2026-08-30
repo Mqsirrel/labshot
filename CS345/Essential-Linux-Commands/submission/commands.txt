@@ -1,0 +1,33 @@
+# CS345 Lab Submission: Essential Linux Commands
+# Generated: 2026-08-30 23:31:40
+# Total Questions: 7
+------------------------------------------------------------
+
+Q1 > ls -la
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur]
+  [Screenshot: q1.png]
+
+Q2 > cd ..
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity]
+  [Screenshot: q2.png]
+
+Q3 > mkdir projects
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity]
+  [Screenshot: q3.png]
+
+Q4 > pwd
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity]
+  [Screenshot: q4.png]
+
+Q5 > cd projects
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/projects]
+  [Screenshot: q5.png]
+
+Q6 > touch test.txt
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/projects]
+  [Screenshot: q6.png]
+
+Q7 > ls -la
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/projects]
+  [Screenshot: q7.png]
+

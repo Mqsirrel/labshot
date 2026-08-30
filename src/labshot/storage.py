@@ -231,3 +231,37 @@ class LabStorage:
             f.write("\n".join(commands_summary_lines) + "\n")
 
         return dest
+
+    @classmethod
+    def list_all_labs(cls, base_dir: Optional[Path] = None) -> List[Dict[str, Any]]:
+        """Discover and list all existing labs in the base CS345 directory."""
+        root = Path(base_dir) if base_dir else Path.cwd() / "CS345"
+        if not root.exists():
+            return []
+
+        labs = []
+        for d in sorted(root.iterdir()):
+            if d.is_dir() and not d.name.startswith("."):
+                meta_file = d / "lab.json"
+                lab_name = d.name.replace("-", " ")
+                if meta_file.exists():
+                    try:
+                        with open(meta_file, "r", encoding="utf-8") as f:
+                            meta = json.load(f)
+                            lab_name = meta.get("lab", lab_name)
+                    except Exception:
+                        pass
+
+                storage = cls(lab_name=lab_name, base_dir=root)
+                nums = storage.get_existing_question_numbers()
+                if nums or meta_file.exists():
+                    labs.append({
+                        "name": lab_name,
+                        "folder": d.name,
+                        "dir": d,
+                        "completed": nums,
+                        "count": len(nums),
+                        "next": storage.get_next_question_number(),
+                    })
+
+        return labs

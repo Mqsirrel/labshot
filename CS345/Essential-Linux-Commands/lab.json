@@ -1,57 +1,57 @@
 {
   "lab": "Essential Linux Commands",
-  "created_at": "2026-08-30T23:36:01.169694",
-  "updated_at": "2026-08-30T23:36:11.900896",
+  "created_at": "2026-08-30T23:40:54.008495",
+  "updated_at": "2026-08-30T23:41:07.663874",
   "questions": [
     {
       "number": 1,
-      "command": "ls -la",
+      "command": "pwd",
       "screenshot": "screenshots/q1.png",
       "command_file": "commands/q1.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:36:03.053014",
+      "timestamp": "2026-08-30T23:40:55.324521",
       "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
       "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur"
     },
     {
       "number": 2,
-      "command": "cd ..",
+      "command": "ls -la",
       "screenshot": "screenshots/q2.png",
       "command_file": "commands/q2.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:36:04.795165",
+      "timestamp": "2026-08-30T23:40:56.711152",
       "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
-      "working_directory_after": "/home/albraa/Documents/antigravity"
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur"
     },
     {
       "number": 3,
-      "command": "mkdir projects",
+      "command": "mkdir -p projects",
       "screenshot": "screenshots/q3.png",
       "command_file": "commands/q3.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:36:06.383963",
-      "working_directory_before": "/home/albraa/Documents/antigravity",
-      "working_directory_after": "/home/albraa/Documents/antigravity"
+      "timestamp": "2026-08-30T23:41:07.663135",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur"
     },
     {
       "number": 4,
-      "command": "pwd",
+      "command": "cd projects",
       "screenshot": "screenshots/q4.png",
       "command_file": "commands/q4.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:36:07.704441",
-      "working_directory_before": "/home/albraa/Documents/antigravity",
-      "working_directory_after": "/home/albraa/Documents/antigravity"
+      "timestamp": "2026-08-30T23:40:59.473700",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects"
     },
     {
       "number": 5,
-      "command": "cd projects",
+      "command": "pwd",
       "screenshot": "screenshots/q5.png",
       "command_file": "commands/q5.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:36:09.162729",
-      "working_directory_before": "/home/albraa/Documents/antigravity",
-      "working_directory_after": "/home/albraa/Documents/antigravity/projects"
+      "timestamp": "2026-08-30T23:41:00.776354",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects"
     },
     {
       "number": 6,
@@ -59,9 +59,9 @@
       "screenshot": "screenshots/q6.png",
       "command_file": "commands/q6.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:36:10.643755",
-      "working_directory_before": "/home/albraa/Documents/antigravity/projects",
-      "working_directory_after": "/home/albraa/Documents/antigravity/projects"
+      "timestamp": "2026-08-30T23:41:02.113741",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects"
     },
     {
       "number": 7,
@@ -69,9 +69,29 @@
       "screenshot": "screenshots/q7.png",
       "command_file": "commands/q7.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:36:11.900589",
-      "working_directory_before": "/home/albraa/Documents/antigravity/projects",
-      "working_directory_after": "/home/albraa/Documents/antigravity/projects"
+      "timestamp": "2026-08-30T23:41:03.484467",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects"
+    },
+    {
+      "number": 8,
+      "command": "cd ..",
+      "screenshot": "screenshots/q8.png",
+      "command_file": "commands/q8.txt",
+      "exit_code": 0,
+      "timestamp": "2026-08-30T23:41:04.852375",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur/projects",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur"
+    },
+    {
+      "number": 9,
+      "command": "rmdir projects",
+      "screenshot": "screenshots/q9.png",
+      "command_file": "commands/q9.txt",
+      "exit_code": 1,
+      "timestamp": "2026-08-30T23:41:06.288989",
+      "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
+      "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur"
     }
   ]
 }

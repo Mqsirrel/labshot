@@ -1,46 +1,141 @@
-"""Command-Line Interface and interactive REPL for labshot."""
+"""Command-Line Interface and simplified interactive student workflow for labshot."""
 
 import argparse
 import os
 import readline
+import shutil
+import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from labshot.config import LabConfig, DEFAULT_CONFIG
+from labshot.screenshot import ScreenshotError
 from labshot.session import LabSession
 from labshot.storage import LabStorage
 
 
-def print_banner(lab_name: str, session: Optional[LabSession] = None) -> None:
-    """Display student-friendly banner."""
-    print("=" * 60)
-    print("  CS345 Lab Screenshot Recorder")
-    print(f"  Lab: {lab_name}")
-    if session:
-        status = session.get_status()
-        print(f"  Terminal: {status['terminal']} | Screenshot: {status['screenshot_backend']}")
-        if status['total_completed'] > 0:
-            print(f"  Resumed session (Completed questions: {status['completed_questions']})")
-    print("=" * 60)
-    print("Type lab commands to execute & capture. Internal commands: :help, :status, :list, :redo <N>, :exit\n")
+def format_path_for_display(path: Path) -> str:
+    """Format path nicely, using ~ for home directory."""
+    try:
+        home = Path.home()
+        rel = path.resolve().relative_to(home.resolve())
+        return f"~/{rel}"
+    except Exception:
+        return str(path)
+
+
+def select_or_create_lab_interactively(base_dir: Optional[Path] = None) -> Optional[str]:
+    """Guide the student interactively through choosing or creating a lab."""
+    labs = LabStorage.list_all_labs(base_dir=base_dir)
+
+    print("Labshot — Linux Lab Evidence Recorder")
+
+    if len(labs) == 1:
+        lab = labs[0]
+        comp_str = f"Q1–Q{lab['count']}" if lab['count'] > 1 else (f"Q1" if lab['count'] == 1 else "None")
+        print(f"Existing lab found:")
+        print(f"  {lab['name']} (Completed: {comp_str})")
+        ans = input(f"Resume from Q{lab['next']}? [Y/n]: ").strip().lower()
+        if ans in ("", "y", "yes"):
+            return lab["name"]
+        elif ans in ("q", "quit", "exit"):
+            return None
+        else:
+            name = input("Lab name: ").strip()
+            return name or "Essential Linux Commands"
+
+    elif len(labs) > 1:
+        print("\nExisting Labs:")
+        for idx, lab in enumerate(labs, start=1):
+            comp_str = f"Q1–Q{lab['count']}" if lab['count'] > 1 else (f"Q1" if lab['count'] == 1 else "Empty")
+            print(f"  {idx}. Resume \"{lab['name']}\" ({comp_str})")
+        print(f"  {len(labs) + 1}. Start new lab")
+        print(f"  {len(labs) + 2}. Exit")
+
+        choice = input(f"Choose [1]: ").strip()
+        if not choice:
+            choice = "1"
+
+        if choice.isdigit():
+            val = int(choice)
+            if 1 <= val <= len(labs):
+                return labs[val - 1]["name"]
+            elif val == len(labs) + 1:
+                name = input("Lab name: ").strip()
+                return name or "Essential Linux Commands"
+            else:
+                return None
+        elif choice.lower() in ("q", "quit", "exit"):
+            return None
+        else:
+            return choice
+
+    else:
+        name = input("Lab name: ").strip()
+        return name or "Essential Linux Commands"
 
 
 def print_help() -> None:
-    """Print internal commands help."""
-    print("\n--- labshot Help ---")
-    print("  <any Linux command>   Execute in persistent shell and capture screenshot")
-    print("  :status               Display current lab status and working directory")
-    print("  :list                 List all recorded questions, exit codes, and files")
-    print("  :redo <N>             Re-execute Question N and overwrite its screenshot/command")
-    print("  :export               Export submission/ package with PNGs and commands.txt")
-    print("  :help                 Show this help message")
-    print("  :exit / :quit         Save and exit the session\n")
+    """Print simple, student-friendly command reference."""
+    print("\n--- labshot Commands ---")
+    print("  <Linux command>   Execute in terminal & capture screenshot")
+    print("  :status           Show completed questions")
+    print("  :redo <N>         Re-take Question N")
+    print("  :done             Finish lab & prepare submission package")
+    print("  :help             Show this help message")
+    print("  :exit             Save and quit\n")
+
+
+def print_status(session: LabSession) -> None:
+    """Display simple, clean visual status of the lab."""
+    existing = session.storage.get_existing_question_numbers()
+    print(f"\nLab: {session.lab_name}")
+    if not existing:
+        print("  No questions captured yet.")
+    else:
+        for num in existing:
+            print(f"  ✓ Q{num}")
+    print(f"  → Q{session.current_q_num} current")
+    print(f"Screenshots: {len(existing)}\n")
+
+
+def handle_done(session: LabSession) -> None:
+    """Finish the lab session, export submission, and summarize results."""
+    sub_dir = session.export()
+    existing = session.storage.get_existing_question_numbers()
+    count = len(existing)
+
+    print("\n" + "=" * 50)
+    print("  ✓ Lab complete")
+    print(f"  {count} questions captured")
+    print(f"  {count} screenshots saved")
+    print(f"  Folder:")
+    print(f"    {format_path_for_display(session.storage.lab_dir)}")
+    print(f"  Submission Package:")
+    print(f"    {format_path_for_display(sub_dir)}")
+    print("=" * 50)
+
+    # Offer to open folder if GUI file manager is available
+    if shutil.which("xdg-open") and sys.stdin.isatty():
+        try:
+            ans = input("\nOpen screenshot folder? [y/N]: ").strip().lower()
+            if ans in ("y", "yes"):
+                subprocess.Popen(["xdg-open", str(session.storage.lab_dir)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
 
 
 def run_repl(session: LabSession) -> None:
-    """Main interactive REPL loop."""
-    print_banner(session.lab_name, session)
+    """Main interactive student REPL."""
+    print(f"Lab: {session.lab_name}")
+    print(f"Lab directory:\n  {format_path_for_display(session.storage.lab_dir)}")
+    print("Starting real terminal session...")
+    
+    if not session.is_active():
+        session.start()
+
+    print("Ready.\n")
 
     redo_target: Optional[int] = None
 
@@ -61,8 +156,12 @@ def run_repl(session: LabSession) -> None:
                 parts = raw_input[1:].strip().split()
                 cmd = parts[0].lower() if parts else ""
 
-                if cmd in ("exit", "quit", "q"):
-                    print("Exiting labshot. All screenshots and metadata saved.")
+                if cmd in ("done", "finish"):
+                    handle_done(session)
+                    break
+
+                elif cmd in ("exit", "quit", "q"):
+                    print("Exiting labshot. All screenshots and commands saved.")
                     break
 
                 elif cmd == "help":
@@ -70,20 +169,12 @@ def run_repl(session: LabSession) -> None:
                     continue
 
                 elif cmd == "status":
-                    status = session.get_status()
-                    print("\n--- Session Status ---")
-                    print(f"  Lab:               {status['lab']}")
-                    print(f"  Lab Directory:     {status['lab_dir']}")
-                    print(f"  Next Question:     Q{status['next_question']}")
-                    print(f"  Total Questions:   {status['total_completed']}")
-                    print(f"  Working Directory: {status['current_cwd']}")
-                    print(f"  Terminal:          {status['terminal']}")
-                    print(f"  Screenshot Engine: {status['screenshot_backend']}\n")
+                    print_status(session)
                     continue
 
                 elif cmd == "list":
                     questions = session.list_questions()
-                    print("\n--- Recorded Questions ---")
+                    print(f"\n--- Recorded Questions: {session.lab_name} ---")
                     if not questions:
                         print("  No questions recorded yet.\n")
                     else:
@@ -104,32 +195,38 @@ def run_repl(session: LabSession) -> None:
                     print(f"Next command will re-take Question {redo_target}.")
                     continue
 
-                elif cmd == "export":
-                    dest = session.export()
-                    print(f"Submission exported successfully to: {dest}")
-                    continue
-
                 else:
-                    print(f"Unknown internal command ':{cmd}'. Type :help for commands.")
+                    print(f"Unknown command ':{cmd}'. Type :help for commands.")
                     continue
 
             # Execute real Linux command
             target_q = redo_target if redo_target is not None else session.current_q_num
+            is_redo = (redo_target is not None)
             redo_target = None  # Reset redo target
 
-            record = session.execute_question(raw_input, question_number=target_q)
-            print(f"Captured → {record.screenshot}")
+            try:
+                record = session.execute_question(raw_input, question_number=target_q)
+                shot_name = Path(record.screenshot).name
+                if is_redo:
+                    print(f"✓ Q{record.number} re-captured → {shot_name}")
+                else:
+                    print(f"✓ Q{record.number} captured → {shot_name}")
+            except ScreenshotError as se:
+                print(f"\n✗ Couldn't capture the terminal screenshot.")
+                print(f"  Reason: {se}")
+                print("  Try:")
+                print("    1. Make sure the terminal window is visible and not minimized.")
+                print(f"    2. Re-enter your command or run :redo {target_q}\n")
+            except Exception as ex:
+                print(f"\n✗ Command execution error: {ex}\n")
 
         except KeyboardInterrupt:
-            print("\n(Press :exit or Ctrl+D to quit labshot)")
+            print("\n(Press :done to finish or :exit to quit)")
             redo_target = None
             continue
         except EOFError:
             print("\nExiting labshot. All screenshots and metadata saved.")
             break
-        except Exception as e:
-            print(f"Error: {e}")
-            redo_target = None
 
 
 def main() -> None:
@@ -141,7 +238,7 @@ def main() -> None:
         "--lab",
         "-l",
         type=str,
-        default="Essential Linux Commands",
+        default=None,
         help="Name of the university lab (e.g. 'Essential Linux Commands')",
     )
     parser.add_argument(
@@ -182,17 +279,17 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # Determine lab name
-    lab_name = getattr(args, "lab", None) or "Essential Linux Commands"
-
+    # If subcommand supplied
     if args.subcommand == "export":
+        lab_name = args.lab or "Essential Linux Commands"
         storage = LabStorage(lab_name=lab_name)
         out_dir = Path(args.out) if args.out else None
         dest = storage.export_submission(target_dir=out_dir)
-        print(f"Exported submission for '{lab_name}' to: {dest}")
+        print(f"Exported submission for '{lab_name}' to: {format_path_for_display(dest)}")
         sys.exit(0)
 
     if args.subcommand == "list":
+        lab_name = args.lab or "Essential Linux Commands"
         storage = LabStorage(lab_name=lab_name)
         meta = storage.load_metadata()
         questions = meta.get("questions", [])
@@ -206,15 +303,23 @@ def main() -> None:
         sys.exit(0)
 
     if args.subcommand == "status":
+        lab_name = args.lab or "Essential Linux Commands"
         storage = LabStorage(lab_name=lab_name)
         existing = storage.get_existing_question_numbers()
         print(f"\n--- Lab Status: {lab_name} ---")
-        print(f"  Directory:           {storage.lab_dir}")
+        print(f"  Directory:           {format_path_for_display(storage.lab_dir)}")
         print(f"  Completed Questions: {existing}")
         print(f"  Next Question:       Q{storage.get_next_question_number()}\n")
         sys.exit(0)
 
-    # Launch interactive session
+    # Determine lab name interactively if not passed via --lab flag
+    lab_name = args.lab
+    if not lab_name:
+        lab_name = select_or_create_lab_interactively()
+        if not lab_name:
+            print("Exiting.")
+            sys.exit(0)
+
     session = LabSession(
         lab_name=lab_name,
         preferred_term=args.term,
@@ -229,12 +334,9 @@ def main() -> None:
             if args.command:
                 cmd_str = " ".join(args.command)
                 rec = session.redo_question(question_number=q_num, command=cmd_str)
-                print(f"Redo Q{q_num} completed: Captured → {rec.screenshot}")
+                print(f"✓ Q{q_num} re-captured → {Path(rec.screenshot).name}")
                 session.close()
                 sys.exit(0)
-            else:
-                # Enter REPL with redo target preset
-                print(f"Starting session to redo Question {q_num}...")
 
         run_repl(session)
 

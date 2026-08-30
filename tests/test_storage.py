@@ -1,4 +1,4 @@
-"""Unit tests for LabStorage and metadata management."""
+"""Unit tests for LabStorage, lab discovery, and metadata management."""
 
 import json
 import tempfile
@@ -96,6 +96,17 @@ class TestLabStorage(unittest.TestCase):
         cmd_content = (sub_dir / "commands.txt").read_text()
         self.assertIn("Q1 > pwd", cmd_content)
         self.assertIn("Q2 > ls -la", cmd_content)
+
+    def test_list_all_labs(self):
+        self.storage.record_question(1, "pwd", 0, "/home", "/home")
+        storage2 = LabStorage(lab_name="Process Management", base_dir=self.base_dir)
+        storage2.record_question(1, "ps aux", 0, "/home", "/home")
+
+        labs = LabStorage.list_all_labs(base_dir=self.base_dir)
+        self.assertEqual(len(labs), 2)
+        names = [l["name"] for l in labs]
+        self.assertIn("Essential Linux Commands", names)
+        self.assertIn("Process Management", names)
 
 
 if __name__ == "__main__":

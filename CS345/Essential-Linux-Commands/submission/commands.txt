@@ -1,33 +1,41 @@
 # CS345 Lab Submission: Essential Linux Commands
-# Generated: 2026-08-30 23:36:11
-# Total Questions: 7
+# Generated: 2026-08-30 23:41:07
+# Total Questions: 9
 ------------------------------------------------------------
 
-Q1 > ls -la
+Q1 > pwd
   [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur]
   [Screenshot: q1.png]
 
-Q2 > cd ..
-  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity]
+Q2 > ls -la
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur]
   [Screenshot: q2.png]
 
-Q3 > mkdir projects
-  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity]
+Q3 > mkdir -p projects
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur]
   [Screenshot: q3.png]
 
-Q4 > pwd
-  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity]
+Q4 > cd projects
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur/projects]
   [Screenshot: q4.png]
 
-Q5 > cd projects
-  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/projects]
+Q5 > pwd
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur/projects]
   [Screenshot: q5.png]
 
 Q6 > touch test.txt
-  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/projects]
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur/projects]
   [Screenshot: q6.png]
 
 Q7 > ls -la
-  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/projects]
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur/projects]
   [Screenshot: q7.png]
+
+Q8 > cd ..
+  [Exit Code: 0] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur]
+  [Screenshot: q8.png]
+
+Q9 > rmdir projects
+  [Exit Code: 1] [Dir: /home/albraa/Documents/antigravity/wonderful-pasteur]
+  [Screenshot: q9.png]
 

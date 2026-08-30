@@ -1,1 +1,1 @@
-mkdir projects
+mkdir -p projects

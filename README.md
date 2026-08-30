@@ -2,120 +2,102 @@
 
 > **Real Terminal Lab Screenshot Recorder for Linux University Coursework & Lab Submissions**
 
-`labshot` is a Linux CLI tool designed for university students (e.g. CS345 Operating Systems / Linux Labs). It lets you execute lab commands in a **real, persistent PTY-backed Bash shell** running inside an authentic GUI terminal window (such as Alacritty or Konsole) and automatically captures **genuine, pixel-perfect native screenshots** of the terminal window after every question.
+`labshot` is a one-command Linux CLI tool designed for university students (e.g. CS345 Operating Systems / Linux Labs). It lets you answer lab questions by executing commands in a **real persistent Linux shell** running inside an authentic terminal window (Alacritty / Konsole) and automatically captures **genuine, pixel-perfect native screenshots** of the terminal window after every question.
 
 ---
 
-## 🚫 No Fake Images
+## 🚀 One-Command Simple Workflow
 
-`labshot` does **NOT** synthesize fake terminal images using HTML, SVG, Canvas, or Pillow:
-- Every `.png` is an **actual hardware/compositor-rendered screen capture** of a real Linux terminal emulator window.
-- Captures genuine font rendering, true colors, standard prompts, exit codes, and output formatting.
-- Generated screenshots are sized and styled with high contrast and crisp typography, optimized for inserting directly into **Microsoft Word / DOCX** lab submission reports.
-
----
-
-## 🏗️ Architecture
-
-```
-                      +-----------------------------+
-                      |   Student CLI Controller    |
-                      |   (Q1 > ls -la, :redo, ...) |
-                      +--------------+--------------+
-                                     |
-                          IPC (UNIX Domain Socket)
-                                     |
-                                     v
-                      +-----------------------------+
-                      | Real GUI Terminal (Window)  |
-                      | (Alacritty / Konsole)       |
-                      |                             |
-                      |   +-----------------------+ |
-                      |   | Worker (PTY Master)   | |
-                      |   +-----------+-----------+ |
-                      |               |             |
-                      |   +-----------v-----------+ |
-                      |   | Persistent Bash Shell | |
-                      |   | (student@cs345:\w$ )  | |
-                      |   +-----------+-----------+ |
-                      +---------------+-------------+
-                                      |
-                      PROMPT_COMMAND Completion FIFO
-                                      |
-                                      v
-                      +-----------------------------+
-                      | Native Screenshot Engine    |
-                      | (Spectacle / Grim / Scrot)  |
-                      +--------------+--------------+
-                                     |
-                                     v
-                 CS345/<Lab-Name>/
-                 ├── screenshots/q1.png, q2.png, ...
-                 ├── commands/q1.txt, q2.txt, ...
-                 └── lab.json
-```
-
----
-
-## ✨ Features
-
-- **Persistent Shell State**: Single bash process throughout the entire lab. Directory changes (`cd ..`, `cd /path`), exported environment variables, and background jobs persist across all questions.
-- **Zero Configuration Setup**: Uses 100% Python standard library (`pty`, `termios`, `fcntl`, `socket`, `subprocess`). No heavy external Python dependencies.
-- **Wayland & X11 Native**: Built-in support for **KDE Plasma Wayland (Spectacle)**, **wlroots Wayland (Grim/Slurp)**, and **X11 (Scrot/ImageMagick)**.
-- **Report-Ready Styling**: High-contrast, clean 110×32 terminal layout, 13pt monospace typography, solid background (zero blur/transparency) for sharp Word/DOCX readability.
-- **Non-blocking Completion Detection**: Uses `PROMPT_COMMAND` IPC signaling — no ugly markers or sentinels printed on the terminal screen.
-- **Interactive REPL & Special Commands**:
-  - `:help`: Show help and command reference.
-  - `:status`: Show current directory, completed questions, active terminal & screenshot engine.
-  - `:list`: List all recorded questions with exit codes.
-  - `:redo <N>`: Re-execute question N and replace its evidence.
-  - `:export`: Export submission bundle with `qN.png` and `commands.txt`.
-  - `:exit`: Gracefully close session.
-- **Session Resume**: Automatically resumes from the next question if you close and re-open `labshot`.
-
----
-
-## 🚀 Quick Start
-
-### 1. Launch a Lab Session
+Just run:
 
 ```bash
-./bin/labshot --lab "Essential Linux Commands"
+labshot
 ```
 
-Or execute directly with Python:
+*(or `./bin/labshot`)*
 
-```bash
-python3 -m labshot.cli --lab "Essential Linux Commands"
-```
-
-### 2. Answer Lab Questions
+### 1. Interactive Setup
 
 ```
-============================================================
-  CS345 Lab Screenshot Recorder
-  Lab: Essential Linux Commands
-  Terminal: alacritty | Screenshot: Spectacle (KDE Native)
-============================================================
-Type lab commands to execute & capture. Internal commands: :help, :status, :list, :redo <N>, :exit
+Labshot — Linux Lab Evidence Recorder
+Lab name: Essential Linux Commands
+Lab directory:
+  ~/CS345/Essential-Linux-Commands
+Starting real terminal session...
+Ready.
+```
 
+### 2. Enter Commands
+
+```
 Q1 > ls -la
-Captured → screenshots/q1.png
+✓ Q1 captured → q1.png
+
 Q2 > cd ..
-Captured → screenshots/q2.png
+✓ Q2 captured → q2.png
+
 Q3 > mkdir projects
-Captured → screenshots/q3.png
+✓ Q3 captured → q3.png
+
 Q4 > pwd
-Captured → screenshots/q4.png
-Q5 > cd projects
-Captured → screenshots/q5.png
-Q6 > touch test.txt
-Captured → screenshots/q6.png
-Q7 > ls -la
-Captured → screenshots/q7.png
+✓ Q4 captured → q4.png
 ```
 
-### 3. Lab Directory Structure
+### 3. Finish Your Lab
+
+Type `:done` when you're finished:
+
+```
+Q5 > :done
+
+==================================================
+  ✓ Lab complete
+  4 questions captured
+  4 screenshots saved
+  Folder:
+    ~/CS345/Essential-Linux-Commands/
+  Submission Package:
+    ~/CS345/Essential-Linux-Commands/submission/
+==================================================
+
+Open screenshot folder? [y/N]: y
+```
+
+---
+
+## ⚡ Useful In-Session Commands
+
+Keep things simple — just a few memorable commands:
+
+| Command | Description |
+| :--- | :--- |
+| **`<any Linux command>`** | Runs the command in the persistent shell & captures screenshot |
+| **`:status`** | Shows visual check-list of captured questions |
+| **`:redo <N>`** | Re-takes Question `N` and replaces its evidence |
+| **`:done`** | Completes the lab and prepares the submission folder |
+| **`:help`** | Displays quick command reference |
+| **`:exit`** | Saves and quits |
+
+---
+
+## 🔄 Automatic Resume & Multi-Lab Support
+
+If you run `labshot` again, existing labs are detected automatically:
+
+```
+Labshot — Linux Lab Evidence Recorder
+Existing lab found:
+  Essential Linux Commands (Completed: Q1–Q7)
+Resume from Q8? [Y/n]: 
+```
+
+Press **Enter** to resume right where you left off — no duplicate questions, no accidental overwrites.
+
+---
+
+## 📁 Automatic Directory Layout
+
+Everything is structured cleanly in `~/CS345/<Lab-Name>/`:
 
 ```
 CS345/
@@ -124,64 +106,33 @@ CS345/
     │   ├── q1.png
     │   ├── q2.png
     │   ├── q3.png
-    │   ├── q4.png
-    │   ├── q5.png
-    │   ├── q6.png
-    │   └── q7.png
+    │   └── q4.png
     ├── commands/
     │   ├── q1.txt
     │   ├── q2.txt
     │   ├── q3.txt
-    │   ├── q4.txt
-    │   ├── q5.txt
-    │   ├── q6.txt
-    │   └── q7.txt
-    └── lab.json
+    │   └── q4.txt
+    ├── submission/
+    │   ├── q1.png
+    │   ├── q2.png
+    │   ├── q3.png
+    │   ├── q4.png
+    │   └── commands.txt      <-- Formatted summary ready for DOCX
+    └── lab.json              <-- Structured metadata with exit codes & PWDs
 ```
 
 ---
 
-## 📋 Metadata Format (`lab.json`)
+## 🚫 100% Real Terminal Screenshots (No Fake Images)
 
-```json
-{
-  "lab": "Essential Linux Commands",
-  "created_at": "2026-08-30T23:31:30.002106",
-  "updated_at": "2026-08-30T23:31:40.014153",
-  "questions": [
-    {
-      "number": 1,
-      "command": "ls -la",
-      "screenshot": "screenshots/q1.png",
-      "command_file": "commands/q1.txt",
-      "exit_code": 0,
-      "timestamp": "2026-08-30T23:31:32.493257",
-      "working_directory_before": "/home/student",
-      "working_directory_after": "/home/student"
-    }
-  ]
-}
-```
+- Every `.png` is an **actual hardware/compositor-rendered screen capture** of the real terminal window.
+- **Persistent shell state**: `cd` changes, environment variables, and background processes persist across all questions.
+- **Report-ready styling**: Deep dark background matching Konsole `MaterialYou` palette, crisp `Hack` typography, and high contrast for sharp insertion into **Microsoft Word / DOCX** lab reports.
+- **Wayland & X11 Native**: Uses KDE **Spectacle** active-window capture with robust multi-tiered window activation.
 
 ---
 
-## 📤 Submission Export
-
-Generate a submission package formatted for your lab assignment report:
-
-```bash
-./bin/labshot export --lab "Essential Linux Commands"
-```
-
-Creates `CS345/Essential-Linux-Commands/submission/`:
-- `q1.png`, `q2.png`, `q3.png` ...
-- `commands.txt` (summary of all questions with exit codes and working directories)
-
----
-
-## 🧪 Testing
-
-Run the automated test suite:
+## 🧪 Running Tests
 
 ```bash
 PYTHONPATH=src python3 -m unittest discover -s tests -v
@@ -191,4 +142,4 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 ## 📄 License
 
-MIT License. Designed for CS345 Operating Systems and Linux coursework.
+MIT License. Built for CS345 Operating Systems and Linux coursework.

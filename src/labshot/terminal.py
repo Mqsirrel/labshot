@@ -38,7 +38,7 @@ class TerminalManager:
         )
 
     def generate_alacritty_config(self, target_path: Path) -> None:
-        """Generate a clean, high-contrast Alacritty TOML config for report-ready screenshots."""
+        """Generate a clean, high-contrast Alacritty TOML config styled after user's Konsole profile."""
         tcfg = self.config.terminal_config
         theme = tcfg.theme
 
@@ -50,7 +50,8 @@ opacity = 1.0
 
 [font]
 size = {tcfg.font_size}
-normal = {{ family = "{tcfg.font_family}" }}
+normal = {{ family = "{tcfg.font_family}", style = "Regular" }}
+bold = {{ family = "{tcfg.font_family}", style = "Bold" }}
 
 [colors.primary]
 background = "{theme.background}"
@@ -65,6 +66,16 @@ blue = "{theme.blue}"
 magenta = "{theme.magenta}"
 cyan = "{theme.cyan}"
 white = "{theme.white}"
+
+[colors.bright]
+black = "{theme.bright_black}"
+red = "{theme.bright_red}"
+green = "{theme.bright_green}"
+yellow = "{theme.bright_yellow}"
+blue = "{theme.bright_blue}"
+magenta = "{theme.bright_magenta}"
+cyan = "{theme.bright_cyan}"
+white = "{theme.bright_white}"
 
 [cursor]
 style = {{ shape = "Block", blinking = "Off" }}

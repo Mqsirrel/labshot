@@ -1,7 +1,7 @@
 {
   "lab": "Essential Linux Commands",
-  "created_at": "2026-08-30T23:33:51.934719",
-  "updated_at": "2026-08-30T23:34:00.686630",
+  "created_at": "2026-08-30T23:36:01.169694",
+  "updated_at": "2026-08-30T23:36:11.900896",
   "questions": [
     {
       "number": 1,
@@ -9,7 +9,7 @@
       "screenshot": "screenshots/q1.png",
       "command_file": "commands/q1.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:33:53.338482",
+      "timestamp": "2026-08-30T23:36:03.053014",
       "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
       "working_directory_after": "/home/albraa/Documents/antigravity/wonderful-pasteur"
     },
@@ -19,7 +19,7 @@
       "screenshot": "screenshots/q2.png",
       "command_file": "commands/q2.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:33:54.662394",
+      "timestamp": "2026-08-30T23:36:04.795165",
       "working_directory_before": "/home/albraa/Documents/antigravity/wonderful-pasteur",
       "working_directory_after": "/home/albraa/Documents/antigravity"
     },
@@ -29,7 +29,7 @@
       "screenshot": "screenshots/q3.png",
       "command_file": "commands/q3.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:33:55.838743",
+      "timestamp": "2026-08-30T23:36:06.383963",
       "working_directory_before": "/home/albraa/Documents/antigravity",
       "working_directory_after": "/home/albraa/Documents/antigravity"
     },
@@ -39,7 +39,7 @@
       "screenshot": "screenshots/q4.png",
       "command_file": "commands/q4.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:33:56.985840",
+      "timestamp": "2026-08-30T23:36:07.704441",
       "working_directory_before": "/home/albraa/Documents/antigravity",
       "working_directory_after": "/home/albraa/Documents/antigravity"
     },
@@ -49,7 +49,7 @@
       "screenshot": "screenshots/q5.png",
       "command_file": "commands/q5.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:33:58.294461",
+      "timestamp": "2026-08-30T23:36:09.162729",
       "working_directory_before": "/home/albraa/Documents/antigravity",
       "working_directory_after": "/home/albraa/Documents/antigravity/projects"
     },
@@ -59,7 +59,7 @@
       "screenshot": "screenshots/q6.png",
       "command_file": "commands/q6.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:33:59.484317",
+      "timestamp": "2026-08-30T23:36:10.643755",
       "working_directory_before": "/home/albraa/Documents/antigravity/projects",
       "working_directory_after": "/home/albraa/Documents/antigravity/projects"
     },
@@ -69,7 +69,7 @@
       "screenshot": "screenshots/q7.png",
       "command_file": "commands/q7.txt",
       "exit_code": 0,
-      "timestamp": "2026-08-30T23:34:00.686202",
+      "timestamp": "2026-08-30T23:36:11.900589",
       "working_directory_before": "/home/albraa/Documents/antigravity/projects",
       "working_directory_after": "/home/albraa/Documents/antigravity/projects"
     }

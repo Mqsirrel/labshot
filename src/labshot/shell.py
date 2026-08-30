@@ -1,8 +1,7 @@
-"""Controller interface for communicating with the persistent terminal shell."""
+"""Persistent shell controller communicating with GUI terminal worker process."""
 
 import json
 import os
-import select
 import shutil
 import socket
 import subprocess
@@ -10,7 +9,7 @@ import tempfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, List, Optional
 
 from labshot.config import LabConfig, DEFAULT_CONFIG
 from labshot.terminal import TerminalManager
@@ -18,7 +17,7 @@ from labshot.terminal import TerminalManager
 
 @dataclass
 class CommandResult:
-    """The result of executing a command in the persistent shell."""
+    """Result of command execution in persistent shell."""
     command: str
     exit_code: int
     cwd_before: str
@@ -26,35 +25,35 @@ class CommandResult:
 
 
 class PersistentShellController:
-    """Manages the lifecycle and IPC communication with the persistent GUI terminal shell."""
+    """Spawns and controls a persistent real interactive shell in a GUI terminal."""
 
-    def __init__(self, lab_name: str, config: LabConfig = DEFAULT_CONFIG, preferred_term: Optional[str] = None):
+    def __init__(
+        self,
+        lab_name: str,
+        config: LabConfig = DEFAULT_CONFIG,
+        preferred_term: Optional[str] = None,
+    ):
         self.lab_name = lab_name
         self.config = config
-        self.preferred_term = preferred_term
-
-        self.session_dir = tempfile.mkdtemp(prefix="labshot_session_")
-        self.sock_path = Path(self.session_dir) / "labshot.sock"
-        self.fifo_path = Path(self.session_dir) / "done.fifo"
-
+        self.temp_dir = tempfile.mkdtemp(prefix="labshot_ctl_")
+        self.sock_path = Path(self.temp_dir) / "shell.sock"
+        self.fifo_path = Path(self.temp_dir) / "status.fifo"
+        self.terminal_mgr = TerminalManager(config=config, preferred_term=preferred_term)
         self.server_socket: Optional[socket.socket] = None
         self.conn: Optional[socket.socket] = None
         self.rfile = None
         self.wfile = None
-
-        self.terminal_mgr = TerminalManager(config=config, preferred_term=preferred_term)
         self.current_cwd: str = os.getcwd()
         self.is_running: bool = False
 
-    def start(self, timeout: float = 8.0) -> None:
-        """Start the IPC server, launch the GUI terminal, and wait for the worker to connect."""
-        if self.sock_path.exists():
-            self.sock_path.unlink()
+    def start(self, timeout: float = 12.0) -> None:
+        """Create communication primitives, launch GUI terminal, and wait for handshake."""
+        # Create status FIFO
         if self.fifo_path.exists():
             self.fifo_path.unlink()
-
         os.mkfifo(self.fifo_path)
 
+        # Create UNIX domain server socket
         self.server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.server_socket.bind(str(self.sock_path))
         self.server_socket.listen(1)
@@ -138,7 +137,7 @@ class PersistentShellController:
         self.terminal_mgr.activate_window()
 
     def close(self) -> None:
-        """Clean up resources, terminate terminal, and remove temporary files."""
+        """Terminate the terminal and close sockets."""
         self.is_running = False
         if self.wfile:
             try:
@@ -152,17 +151,20 @@ class PersistentShellController:
                 self.conn.close()
             except Exception:
                 pass
+            self.conn = None
 
         if self.server_socket:
             try:
                 self.server_socket.close()
             except Exception:
                 pass
+            self.server_socket = None
 
-        self.terminal_mgr.cleanup()
+        self.terminal_mgr.close()
 
-        if os.path.exists(self.session_dir):
+        if self.temp_dir and os.path.exists(self.temp_dir):
             try:
-                shutil.rmtree(self.session_dir)
+                shutil.rmtree(self.temp_dir, ignore_errors=True)
             except Exception:
                 pass
+            self.temp_dir = None

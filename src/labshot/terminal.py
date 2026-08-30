@@ -56,7 +56,7 @@ class TerminalManager:
         )
 
     def generate_alacritty_config(self, target_path: Path) -> None:
-        """Generate a clean, high-contrast Alacritty TOML config styled after user's Konsole profile."""
+        """Generate a clean, high-contrast Alacritty TOML config styled after Tokyo Night Modern."""
         tcfg = self.config.terminal_config
         theme = tcfg.theme
 
@@ -119,6 +119,8 @@ style = {{ shape = "Block", blinking = "Off" }}
         env["LABSHOT_TITLE"] = self.window_title
         env["LABSHOT_TOKEN"] = self.session_token
         env["LABSHOT_PS1"] = self.config.prompt_template
+        env["LABSHOT_COLS"] = str(self.config.terminal_config.columns)
+        env["LABSHOT_ROWS"] = str(self.config.terminal_config.lines)
 
         python_exec = shutil.which("python3") or "python3"
 
@@ -170,66 +172,96 @@ style = {{ shape = "Block", blinking = "Off" }}
         return self.process
 
     def activate_window(self) -> bool:
-        """Activate/raise the terminal window using multi-tiered compositor and window manager APIs."""
-        target_pid = self.process.pid if self.process else -1
+        """Multi-tiered window activation ensuring the terminal window is raised and focused."""
         token = self.session_token
+        target_pid = self.process.pid if self.process else 0
 
-        # Tier 1: KDE Plasma 6 & 5 KWin Scripting (Wayland & X11)
-        if shutil.which("qdbus6") or shutil.which("qdbus"):
-            qdbus_bin = shutil.which("qdbus6") or "qdbus"
-            kwin_js = f"""
-            var wins = workspace.stackingOrder;
-            for (var i = 0; i < wins.length; i++) {{
-                var w = wins[i];
+        # Tier 1: KDE Plasma 6 KWin Declarative Scripting via qdbus6
+        if shutil.which("qdbus6") and (os.environ.get("KDE_FULL_SESSION") or os.environ.get("XDG_CURRENT_DESKTOP") == "KDE"):
+            script_name = f"labshot_focus_{token}"
+            script_body = f"""
+            var clients = workspace.stackingOrder;
+            for (var i = 0; i < clients.length; i++) {{
+                var w = clients[i];
                 if ((w.pid && w.pid === {target_pid}) || (w.caption && w.caption.indexOf("{token}") !== -1)) {{
                     workspace.activeWindow = w;
                     break;
                 }}
             }}
             """
-            script_file = Path(self.temp_dir) / "focus.js" if self.temp_dir else Path(f"/tmp/labshot_focus_{token}.js")
             try:
-                with open(script_file, "w", encoding="utf-8") as f:
-                    f.write(kwin_js)
-                subprocess.run(
-                    [qdbus_bin, "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadDeclarativeScript", str(script_file), f"labshot_focus_{token}"],
+                with tempfile.NamedTemporaryFile("w", suffix=".js", delete=False) as tf:
+                    tf.write(script_body)
+                    temp_script_path = tf.name
+
+                res = subprocess.run(
+                    ["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.loadDeclarativeScript", temp_script_path, script_name],
                     capture_output=True, text=True, timeout=2
                 )
-                subprocess.run([qdbus_bin, "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.start"], capture_output=True, timeout=2)
-                time.sleep(0.05)
-                subprocess.run([qdbus_bin, "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.unloadScript", f"labshot_focus_{token}"], capture_output=True, timeout=2)
-                return True
+                if res.returncode == 0:
+                    subprocess.run(
+                        ["qdbus6", "org.kde.KWin", f"/{script_name}", "org.kde.kwin.Scripting.start"],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2
+                    )
+                    subprocess.run(
+                        ["qdbus6", "org.kde.KWin", "/Scripting", "org.kde.kwin.Scripting.unloadScript", script_name],
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=2
+                    )
+                    try:
+                        os.unlink(temp_script_path)
+                    except Exception:
+                        pass
+                    return True
+                try:
+                    os.unlink(temp_script_path)
+                except Exception:
+                    pass
             except Exception:
                 pass
 
-        # Tier 2: Hyprland Wayland IPC (hyprctl)
-        if shutil.which("hyprctl"):
+        # Tier 2: Hyprland IPC
+        if shutil.which("hyprctl") and os.environ.get("HYPRLAND_INSTANCE_SIGNATURE"):
             try:
-                subprocess.run(["hyprctl", "dispatch", "focuswindow", f"title:{token}"], capture_output=True, timeout=1)
-                return True
-            except Exception:
-                pass
-
-        # Tier 3: Sway Wayland IPC (swaymsg)
-        if shutil.which("swaymsg"):
-            try:
-                subprocess.run(["swaymsg", f"[title=\"{token}\"]", "focus"], capture_output=True, timeout=1)
-                return True
-            except Exception:
-                pass
-
-        # Tier 4: X11 / XWayland (xdotool / wmctrl)
-        if shutil.which("xdotool"):
-            try:
-                res = subprocess.run(["xdotool", "search", "--name", token, "windowactivate", "--sync"], capture_output=True, timeout=1)
+                res = subprocess.run(
+                    ["hyprctl", "dispatch", "focuswindow", f"title:{token}"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1
+                )
                 if res.returncode == 0:
                     return True
             except Exception:
                 pass
 
-        if shutil.which("wmctrl"):
+        # Tier 3: Sway IPC
+        if shutil.which("swaymsg") and os.environ.get("SWAYSOCK"):
             try:
-                res = subprocess.run(["wmctrl", "-a", token], capture_output=True, timeout=1)
+                res = subprocess.run(
+                    ["swaymsg", f'[title="{token}"]', "focus"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1
+                )
+                if res.returncode == 0:
+                    return True
+            except Exception:
+                pass
+
+        # Tier 4: X11 xdotool
+        if shutil.which("xdotool") and os.environ.get("DISPLAY"):
+            try:
+                res = subprocess.run(
+                    ["xdotool", "search", "--name", token, "windowactivate", "--sync"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1
+                )
+                if res.returncode == 0:
+                    return True
+            except Exception:
+                pass
+
+        # Tier 5: X11 wmctrl
+        if shutil.which("wmctrl") and os.environ.get("DISPLAY"):
+            try:
+                res = subprocess.run(
+                    ["wmctrl", "-a", token],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=1
+                )
                 if res.returncode == 0:
                     return True
             except Exception:
@@ -238,91 +270,115 @@ style = {{ shape = "Block", blinking = "Off" }}
         return False
 
     def find_x11_window_id(self) -> Optional[str]:
-        """Find the X11 Window ID corresponding to our terminal window."""
-        token = self.session_token
+        """Find the X11 Window ID corresponding to the terminal window."""
+        if self.cached_window_id:
+            return self.cached_window_id
 
+        token = self.session_token
         if shutil.which("xdotool"):
             try:
-                res = subprocess.run(["xdotool", "search", "--name", token], capture_output=True, text=True, timeout=1)
+                res = subprocess.run(["xdotool", "search", "--name", token], capture_output=True, text=True, timeout=2)
                 if res.returncode == 0 and res.stdout.strip():
-                    # Return the last window ID found
-                    ids = res.stdout.strip().splitlines()
-                    if ids:
-                        self.cached_window_id = ids[-1].strip()
-                        return self.cached_window_id
+                    wid = res.stdout.strip().splitlines()[0]
+                    self.cached_window_id = wid
+                    return wid
             except Exception:
                 pass
 
         if shutil.which("wmctrl"):
             try:
-                res = subprocess.run(["wmctrl", "-l"], capture_output=True, text=True, timeout=1)
+                res = subprocess.run(["wmctrl", "-l"], capture_output=True, text=True, timeout=2)
                 if res.returncode == 0:
                     for line in res.stdout.splitlines():
                         if token in line:
-                            parts = line.split()
-                            if parts:
-                                self.cached_window_id = parts[0]
-                                return self.cached_window_id
+                            wid = line.split()[0]
+                            self.cached_window_id = wid
+                            return wid
             except Exception:
                 pass
 
         return None
 
     def get_window_geometry(self) -> Optional[WindowGeometry]:
-        """Query compositor IPC to retrieve exact window bounding box."""
-        target_pid = self.process.pid if self.process else -1
+        """Query the exact geometry (X, Y, Width, Height) of the terminal window."""
         token = self.session_token
 
-        # Hyprland
+        # Try Hyprland JSON
         if shutil.which("hyprctl"):
             try:
                 res = subprocess.run(["hyprctl", "activewindow", "-j"], capture_output=True, text=True, timeout=1)
                 if res.returncode == 0:
                     data = json.loads(res.stdout)
-                    if token in data.get("title", "") or data.get("pid") == target_pid:
-                        at = data.get("at", [0, 0])
-                        size = data.get("size", [0, 0])
+                    at = data.get("at", [0, 0])
+                    size = data.get("size", [0, 0])
+                    if size[0] > 0 and size[1] > 0:
                         return WindowGeometry(x=at[0], y=at[1], width=size[0], height=size[1])
             except Exception:
                 pass
 
-        # Sway
+        # Try Sway JSON
         if shutil.which("swaymsg"):
             try:
                 res = subprocess.run(["swaymsg", "-t", "get_tree"], capture_output=True, text=True, timeout=1)
                 if res.returncode == 0:
                     tree = json.loads(res.stdout)
-                    def find_node(node):
-                        if token in node.get("name", ""):
+                    def find_focused(node):
+                        if node.get("focused"):
                             r = node.get("rect", {})
                             return WindowGeometry(x=r.get("x", 0), y=r.get("y", 0), width=r.get("width", 0), height=r.get("height", 0))
-                        for n in node.get("nodes", []) + node.get("floating_nodes", []):
-                            found = find_node(n)
+                        for child in node.get("nodes", []) + node.get("floating_nodes", []):
+                            found = find_focused(child)
                             if found:
                                 return found
                         return None
-                    geom = find_node(tree)
+                    geom = find_focused(tree)
                     if geom:
                         return geom
             except Exception:
                 pass
 
+        # Try X11 xwininfo
+        x11_id = self.find_x11_window_id()
+        if x11_id and shutil.which("xwininfo"):
+            try:
+                res = subprocess.run(["xwininfo", "-id", str(x11_id)], capture_output=True, text=True, timeout=2)
+                if res.returncode == 0:
+                    lines = res.stdout.splitlines()
+                    x, y, w, h = 0, 0, 0, 0
+                    for line in lines:
+                        if "Absolute upper-left X:" in line:
+                            x = int(line.split()[-1])
+                        elif "Absolute upper-left Y:" in line:
+                            y = int(line.split()[-1])
+                        elif "Width:" in line:
+                            w = int(line.split()[-1])
+                        elif "Height:" in line:
+                            h = int(line.split()[-1])
+                    if w > 0 and h > 0:
+                        return WindowGeometry(x=x, y=y, width=w, height=h)
+            except Exception:
+                pass
+
         return None
 
-    def cleanup(self) -> None:
-        """Terminate the terminal process and remove temporary files."""
-        if self.process and self.process.poll() is None:
+    def close(self) -> None:
+        """Close the terminal process and clean up temporary directory."""
+        if self.process:
             try:
                 self.process.terminate()
-                self.process.wait(timeout=2)
+                self.process.wait(timeout=1.5)
             except Exception:
                 try:
                     self.process.kill()
                 except Exception:
                     pass
+            self.process = None
 
         if self.temp_dir and os.path.exists(self.temp_dir):
             try:
-                shutil.rmtree(self.temp_dir)
+                shutil.rmtree(self.temp_dir, ignore_errors=True)
             except Exception:
                 pass
+            self.temp_dir = None
+
+    cleanup = close

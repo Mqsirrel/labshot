@@ -102,18 +102,17 @@ def run_repl(session: LabSession) -> None:
             if not raw_input:
                 continue
 
-            cleaned_lower = raw_input.lower().lstrip(":")
+            cleaned = raw_input.strip().lstrip(":")
+            parts = cleaned.split()
+            cmd = parts[0].lower() if parts else ""
 
             # Immediate termination commands
-            if cleaned_lower in ("end", "done", "finish", "stop", "exit", "quit", "q"):
+            if cmd in ("end", "done", "finish", "stop", "exit", "quit", "q"):
                 handle_done(session)
                 break
 
-            # Handle internal commands
-            if raw_input.startswith(":"):
-                parts = raw_input[1:].strip().split()
-                cmd = parts[0].lower() if parts else ""
-
+            # Handle internal commands (with or without ':' prefix)
+            if raw_input.startswith(":") or cmd in ("redo", "status", "help", "list"):
                 if cmd == "help":
                     print_help()
                     continue
@@ -135,7 +134,7 @@ def run_repl(session: LabSession) -> None:
 
                 elif cmd == "redo":
                     if len(parts) < 2 or not parts[1].isdigit():
-                        print("Usage: :redo <question_number>")
+                        print("Usage: redo <question_number> (e.g. redo 1)")
                         continue
                     target_q = int(parts[1])
                     if target_q < 1:
@@ -146,8 +145,9 @@ def run_repl(session: LabSession) -> None:
                     continue
 
                 else:
-                    print(f"Unknown command ':{cmd}'. Type :help for commands.")
-                    continue
+                    if raw_input.startswith(":"):
+                        print(f"Unknown command ':{cmd}'. Type help for commands.")
+                        continue
 
             # Execute real Linux command
             target_q = redo_target if redo_target is not None else session.current_q_num

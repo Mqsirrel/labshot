@@ -70,9 +70,16 @@ def main():
         os.setsid()
         fcntl.ioctl(slave_fd, termios.TIOCSCTTY, 0)
 
+    title = os.environ.get("LABSHOT_TITLE", f"labshot — CS345 Terminal [{os.environ.get('LABSHOT_TOKEN', '')}]")
+
+    # Explicitly set terminal window title via OSC 0/2 escape sequences
+    sys.stdout.write(f"\033]0;{title}\007\033]2;{title}\007")
+    sys.stdout.flush()
+
     env = os.environ.copy()
-    env["PROMPT_COMMAND"] = f"echo $? $PWD > {fifo_path}"
-    env["PS1"] = os.environ.get("LABSHOT_PS1", r"\u@\h:\w\$ ")
+    # Keep title locked in window caption on every command prompt
+    env["PROMPT_COMMAND"] = f'printf "\\033]0;{title}\\007"; echo $? $PWD > {fifo_path}'
+    env["PS1"] = os.environ.get("LABSHOT_PS1", r"\u:\w\$ ")
     env["TERM"] = "xterm-256color"
     env["COLUMNS"] = str(target_cols)
     env["LINES"] = str(target_rows)

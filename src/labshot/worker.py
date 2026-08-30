@@ -164,6 +164,9 @@ def main():
 
         elif action == "run":
             cmd = msg.get("cmd", "")
+            # Clear screen and redraw clean prompt for isolated question capture
+            os.write(master_fd, b"")
+            time.sleep(0.04)
             # Send command + newline to interactive bash PTY
             os.write(master_fd, (cmd + "\n").encode("utf-8"))
 

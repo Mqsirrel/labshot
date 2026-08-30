@@ -7,6 +7,7 @@ from pathlib import Path
 from labshot.config import LabConfig
 from labshot.ui.app import LabshotApp
 from labshot.ui.screens.home import HomeScreen
+from labshot.ui.suggester import FishCommandSuggester, load_user_shell_histories
 from labshot.ui.widgets.command_prompt import CommandPrompt
 from labshot.ui.widgets.evidence_card import EvidenceCard
 from labshot.ui.widgets.question_list import QuestionList, QuestionListItem
@@ -39,6 +40,28 @@ class TestTUIWidgetsAndScreens(unittest.IsolatedAsyncioTestCase):
     def test_command_prompt_widget(self):
         prompt = CommandPrompt(placeholder="Test prompt")
         self.assertEqual(prompt.placeholder_text, "Test prompt")
+
+    async def test_fish_suggester_completion(self):
+        suggester = FishCommandSuggester(history=["mkdir my_special_lab"], load_system_shells=False)
+        
+        # Test common command completion
+        res_ls = await suggester.get_suggestion("ls")
+        self.assertEqual(res_ls, "ls -la")
+
+        res_cd = await suggester.get_suggestion("cd")
+        self.assertEqual(res_cd, "cd ..")
+
+        # Test setup command completion
+        res_setup = await suggester.get_suggestion("; c")
+        self.assertEqual(res_setup, "; cd ..")
+
+        # Test history priority
+        res_hist = await suggester.get_suggestion("mkdir my_")
+        self.assertEqual(res_hist, "mkdir my_special_lab")
+
+    def test_load_user_shell_histories(self):
+        hist = load_user_shell_histories(max_items=50)
+        self.assertIsInstance(hist, list)
 
     async def test_app_home_screen_pilot(self):
         app = LabshotApp(config=self.config)

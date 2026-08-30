@@ -1,4 +1,4 @@
-"""Main Lab Workspace Screen with setup command freedom and dynamic question tracking."""
+"""Main Lab Workspace Screen with Fish-style auto-suggestions and setup command support."""
 
 import asyncio
 from pathlib import Path
@@ -13,6 +13,7 @@ from labshot.ui.screens.help import HelpModal
 from labshot.ui.screens.preview import PreviewModal
 from labshot.ui.screens.status import StatusModal
 from labshot.ui.screens.summary import SummaryScreen
+from labshot.ui.suggester import FishCommandSuggester
 from labshot.ui.widgets.command_prompt import CommandPrompt
 from labshot.ui.widgets.evidence_card import EvidenceCard
 from labshot.ui.widgets.question_list import QuestionList
@@ -49,6 +50,13 @@ class LabScreen(Screen):
         self.session = session
         self.active_q: int = session.current_q_num
         self.is_executing: bool = False
+        
+        # Initialize Fish auto-suggester with session directory tracking & history
+        history_cmds = [q.get("command", "") for q in self.session.list_questions() if q.get("command")]
+        self.suggester = FishCommandSuggester(
+            get_cwd=lambda: self.session.shell.current_cwd,
+            history=history_cmds,
+        )
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -67,7 +75,7 @@ class LabScreen(Screen):
                     yield Label(f" Q{self.active_q} ", id="q-badge")
                     yield Label(f"Path: {format_path_for_display(self.session.shell.current_cwd)}", id="q-pwd-label")
 
-                yield CommandPrompt()
+                yield CommandPrompt(suggester=self.suggester)
                 yield EvidenceCard()
 
         yield Footer()
@@ -111,6 +119,9 @@ class LabScreen(Screen):
         cmd = event.command.strip()
         if not cmd:
             return
+
+        # Add to autosuggestion history
+        self.suggester.add_history(cmd)
 
         if event.is_setup:
             self._execute_setup_command(cmd)

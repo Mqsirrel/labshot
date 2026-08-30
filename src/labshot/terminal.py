@@ -32,8 +32,11 @@ class TerminalManager:
 
     def __init__(self, config: LabConfig = DEFAULT_CONFIG, preferred_term: Optional[str] = None):
         self.config = config
-        self.preferred_term = preferred_term
-        self.selected_term = self._detect_terminal(preferred_term)
+        # Check environment variable LABSHOT_TERM as fallback preference
+        env_pref = os.environ.get("LABSHOT_TERM")
+        pref = preferred_term or env_pref
+        self.preferred_term = pref
+        self.selected_term = self._detect_terminal(pref)
         self.temp_dir: Optional[str] = None
         self.process: Optional[subprocess.Popen] = None
         self.session_token: str = uuid.uuid4().hex[:8]
@@ -44,7 +47,7 @@ class TerminalManager:
         """Detect the best available terminal emulator on the system."""
         candidates = ["alacritty", "konsole", "gnome-terminal", "xfce4-terminal", "xterm", "kitty", "foot"]
         if preferred:
-            candidates.insert(0, preferred)
+            candidates.insert(0, preferred.lower())
 
         for name in candidates:
             if shutil.which(name):
@@ -138,6 +141,8 @@ style = {{ shape = "Block", blinking = "Off" }}
                 "konsole",
                 "--separate",
                 "--hide-menubar",
+                "--hide-tabbar",
+                "--qwindowtitle", self.window_title,
                 "-p", f"TerminalColumns={self.config.terminal_config.columns}",
                 "-p", f"TerminalRows={self.config.terminal_config.lines}",
                 "-e", python_exec, str(worker_script_path), str(sock_path), str(fifo_path),

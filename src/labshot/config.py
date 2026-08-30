@@ -50,7 +50,8 @@ class LabConfig:
     """General configuration for the lab recording session."""
     default_lab_name: str = "Essential Linux Commands"
     base_dir: Path = field(default_factory=lambda: Path.cwd() / "CS345")
-    prompt_template: str = r"\u@\h:\w\$ "
+    # Prompt omits hostname to keep terminal output clean and compact (e.g. albraa:~/path$)
+    prompt_template: str = r"\u:\w\$ "
     default_timeout_seconds: float = 30.0
     post_command_delay: float = 0.12
     terminal_config: TerminalConfig = field(default_factory=TerminalConfig)

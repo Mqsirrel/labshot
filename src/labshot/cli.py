@@ -198,11 +198,17 @@ def main() -> None:
         help="Name of the university lab",
     )
     parser.add_argument(
+        "--konsole",
+        "-k",
+        action="store_true",
+        help="Use Konsole as the terminal window",
+    )
+    parser.add_argument(
         "--term",
         "-t",
         type=str,
         default=None,
-        help="Preferred terminal emulator (alacritty, konsole, etc.)",
+        help="Preferred terminal emulator (alacritty, konsole, gnome-terminal, etc.)",
     )
     parser.add_argument(
         "--screenshot",
@@ -234,6 +240,9 @@ def main() -> None:
     redo_parser.add_argument("--lab", "-l", type=str, default=None, help="Lab name")
 
     args = parser.parse_args()
+
+    # Determine preferred terminal
+    chosen_term = "konsole" if args.konsole else args.term
 
     # If subcommand supplied
     if args.subcommand == "export":
@@ -274,7 +283,7 @@ def main() -> None:
 
     session = LabSession(
         lab_name=lab_name,
-        preferred_term=args.term,
+        preferred_term=chosen_term,
         preferred_screenshot=args.screenshot,
     )
 
